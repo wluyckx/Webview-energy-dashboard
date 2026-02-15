@@ -5,6 +5,7 @@
  * TDD: Tests written FIRST, before implementation.
  *
  * CHANGELOG:
+ * - 2026-02-15: Add mock mode tests (STORY-004)
  * - 2026-02-15: Initial test suite (STORY-003)
  */
 
@@ -588,5 +589,92 @@ describe('cache is keyed by extra parameter for series/capacity', () => {
     mockFetchNetworkError();
     const marResult = await ApiClient.fetchP1Capacity(config, '2026-03');
     expect(marResult).toEqual(marFixture);
+  });
+});
+
+// ===========================================================================
+// Mock mode: config.mock = true returns mock data without calling fetch
+// ===========================================================================
+describe('mock mode (config.mock = true)', () => {
+  // Make MockData available as a global so the ApiClient IIFE can reference it
+  beforeAll(() => {
+    global.MockData = require('../src/mock-data.js');
+  });
+
+  afterAll(() => {
+    delete global.MockData;
+  });
+
+  test('fetchP1Realtime returns mock data without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.fetchP1Realtime(config);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('device_id', 'p1-meter-01');
+    expect(result).toHaveProperty('ts');
+    expect(result).toHaveProperty('power_w');
+    expect(result).toHaveProperty('import_power_w');
+    expect(result).toHaveProperty('energy_import_kwh');
+    expect(result).toHaveProperty('energy_export_kwh');
+  });
+
+  test('fetchSungrowRealtime returns mock data without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.fetchSungrowRealtime(config);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('device_id', 'inverter-01');
+    expect(result).toHaveProperty('ts');
+    expect(result).toHaveProperty('pv_power_w');
+    expect(result).toHaveProperty('battery_soc_pct');
+    expect(result).toHaveProperty('load_power_w');
+  });
+
+  test('checkP1Health returns mock health without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.checkP1Health(config);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: 'ok' });
+  });
+
+  test('checkSungrowHealth returns mock health without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.checkSungrowHealth(config);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: 'ok' });
+  });
+
+  test('fetchP1Series returns mock series data without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.fetchP1Series(config, 'day');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('device_id');
+    expect(result).toHaveProperty('frame');
+    expect(result).toHaveProperty('series');
+    expect(Array.isArray(result.series)).toBe(true);
+  });
+
+  test('fetchSungrowSeries returns mock series data without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.fetchSungrowSeries(config, 'day');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('device_id');
+    expect(result).toHaveProperty('frame');
+    expect(result).toHaveProperty('series');
+  });
+
+  test('fetchP1Capacity returns mock capacity data without calling fetch', async () => {
+    const config = makeConfig({ mock: true });
+    const result = await ApiClient.fetchP1Capacity(config, '2026-02');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toHaveProperty('device_id', 'p1-meter-01');
+    expect(result).toHaveProperty('month');
+    expect(result).toHaveProperty('peaks');
+    expect(result).toHaveProperty('monthly_peak_w');
   });
 });

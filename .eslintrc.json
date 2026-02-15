@@ -14,7 +14,8 @@
     "Config": "readonly",
     "PowerFlow": "readonly",
     "App": "readonly",
-    "ApiClient": "readonly"
+    "ApiClient": "readonly",
+    "MockData": "readonly"
   },
   "rules": {
     "no-unused-vars": "warn",

@@ -8,6 +8,7 @@
  * STORY-003: API Client with Authentication
  *
  * CHANGELOG:
+ * - 2026-02-15: Add mock data path for all 7 functions (STORY-004)
  * - 2026-02-15: Initial implementation (STORY-003)
  */
 
@@ -123,6 +124,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or cached value or null.
    */
   function fetchP1Realtime(config) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockP1Realtime());
+    }
     var url = config.p1_base + '/v1/realtime?device_id=' + config.p1_device_id;
 
     return authenticatedFetch(url, config.p1_token).then(
@@ -144,6 +148,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or cached value or null.
    */
   function fetchP1Series(config, frame) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockSungrowSeriesDay());
+    }
     var url = config.p1_base + '/v1/series?device_id=' + config.p1_device_id + '&frame=' + frame;
 
     return authenticatedFetch(url, config.p1_token).then(
@@ -165,6 +172,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or cached value or null.
    */
   function fetchP1Capacity(config, month) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockP1Capacity());
+    }
     var url = config.p1_base + '/v1/capacity/month/' + month + '?device_id=' + config.p1_device_id;
 
     return authenticatedFetch(url, config.p1_token).then(
@@ -189,6 +199,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or cached value or null.
    */
   function fetchSungrowRealtime(config) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockSungrowRealtime());
+    }
     var url = config.sungrow_base + '/v1/realtime?device_id=' + config.sungrow_device_id;
 
     return authenticatedFetch(url, config.sungrow_token).then(
@@ -210,6 +223,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or cached value or null.
    */
   function fetchSungrowSeries(config, frame) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockSungrowSeriesDay());
+    }
     var url =
       config.sungrow_base + '/v1/series?device_id=' + config.sungrow_device_id + '&frame=' + frame;
 
@@ -235,6 +251,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or null on failure.
    */
   function checkP1Health(config) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockHealthResponse());
+    }
     var url = config.p1_base + '/health';
 
     return unauthenticatedFetch(url).then(
@@ -254,6 +273,9 @@ const ApiClient = (() => {
    * @returns {Promise<Object|null>} Parsed JSON or null on failure.
    */
   function checkSungrowHealth(config) {
+    if (config.mock) {
+      return Promise.resolve(MockData.getMockHealthResponse());
+    }
     var url = config.sungrow_base + '/health';
 
     return unauthenticatedFetch(url).then(
