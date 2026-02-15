@@ -451,9 +451,10 @@ clock (or time provider) to enable deterministic testing:
 - All CSS must be inline in `<style>` tags
 - All project JS must be inline in `<script>` tags
 - Chart.js loaded exclusively via CDN (NOT inlined — ~200 KB uncompressed would exceed budget)
-- If CDN is unavailable (first load without internet), charts degrade gracefully — power flow diagram and KPI cards still render, chart sections show "Charts unavailable — requires internet connection" placeholder
+- Web fonts (JetBrains Mono, DM Sans) loaded via Google Fonts CDN (NOT inlined — font files are large binary assets unsuitable for inline embedding)
+- If CDN is unavailable (first load without internet), charts degrade gracefully — power flow diagram and KPI cards still render, chart sections show "Charts unavailable — requires internet connection" placeholder. Fonts fall back to system monospace/sans-serif.
 
-**Allowed**: CDN-loaded libraries, separate files during development, build script to inline
+**Allowed**: CDN-loaded libraries, CDN-loaded web fonts, separate files during development, build script to inline
 **Forbidden**: npm runtime dependencies, build frameworks (webpack, vite, etc.), multiple HTML pages
 
 ### HC-002: No Hardcoded Credentials

@@ -72,7 +72,17 @@ const Config = (() => {
     var params = new URLSearchParams(searchString);
     var errors = [];
 
-    // 1. Check for missing required parameters
+    // 1. IMMEDIATELY scrub tokens from URL bar before any validation (HC-002).
+    //    Tokens must never remain in URL, even if config is invalid.
+    var extractedTokens = {};
+    TOKEN_PARAMS.forEach(function (name) {
+      if (params.has(name)) {
+        extractedTokens[name] = params.get(name);
+      }
+    });
+    scrubTokensFromUrl(searchString);
+
+    // 2. Check for missing required parameters
     REQUIRED_PARAMS.forEach(function (name) {
       if (!params.has(name) || params.get(name).trim() === '') {
         errors.push('Missing required parameter: ' + name);
@@ -84,7 +94,7 @@ const Config = (() => {
       return { valid: false, errors: errors };
     }
 
-    // 2. Validate base URLs start with https://
+    // 3. Validate base URLs start with https://
     URL_PARAMS.forEach(function (name) {
       var error = validateUrl(name, params.get(name));
       if (error) {
@@ -92,7 +102,7 @@ const Config = (() => {
       }
     });
 
-    // 3. Validate device IDs are non-empty strings
+    // 4. Validate device IDs are non-empty strings
     ['p1_device_id', 'sungrow_device_id'].forEach(function (name) {
       var error = validateNonEmpty(name, params.get(name));
       if (error) {
@@ -100,39 +110,42 @@ const Config = (() => {
       }
     });
 
-    // 4. Validate tokens if provided in URL (non-empty when present)
+    // 5. Validate tokens if provided in URL (non-empty when present)
     TOKEN_PARAMS.forEach(function (name) {
-      if (params.has(name)) {
-        var error = validateNonEmpty(name, params.get(name));
+      if (name in extractedTokens) {
+        var error = validateNonEmpty(name, extractedTokens[name]);
         if (error) {
           errors.push(error);
         }
       }
     });
 
+    // 6. Validate mock parameter (must be "true", "false", or absent)
+    var mockRaw = params.get('mock');
+    if (mockRaw !== null && mockRaw !== 'true' && mockRaw !== 'false') {
+      errors.push('mock must be "true" or "false", got: ' + mockRaw);
+    }
+
     // If validation errors, return early
     if (errors.length > 0) {
       return { valid: false, errors: errors };
     }
 
-    // 5. Build config object
+    // 7. Build config object
     var config = {
       p1_base: params.get('p1_base'),
       sungrow_base: params.get('sungrow_base'),
       p1_device_id: params.get('p1_device_id'),
       sungrow_device_id: params.get('sungrow_device_id'),
-      mock: params.get('mock') === 'true',
+      mock: mockRaw === 'true',
     };
 
-    // 6. Extract tokens from URL if present (dev fallback)
+    // 8. Attach extracted tokens to config (already scrubbed from URL)
     TOKEN_PARAMS.forEach(function (name) {
-      if (params.has(name)) {
-        config[name] = params.get(name);
+      if (name in extractedTokens) {
+        config[name] = extractedTokens[name];
       }
     });
-
-    // 7. Scrub tokens from URL bar (HC-002)
-    scrubTokensFromUrl(searchString);
 
     // 8. Store in private state
     currentConfig = config;

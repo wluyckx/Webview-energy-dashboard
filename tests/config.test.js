@@ -176,6 +176,14 @@ describe('parseConfig - mock parameter', () => {
     expect(result.valid).toBe(true);
     expect(result.config.mock).toBe(false);
   });
+
+  test('rejects invalid mock value (e.g. mock=foo)', () => {
+    const search = validSearch({ mock: 'foo' });
+    const result = Config.parseConfig(search);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining([expect.stringContaining('mock')]));
+  });
 });
 
 // ===========================================================================
@@ -206,6 +214,22 @@ describe('parseConfig - token scrubbing', () => {
     Config.parseConfig(search);
 
     expect(window.history.replaceState).not.toHaveBeenCalled();
+  });
+
+  test('scrubs tokens even when required params are missing (HC-002)', () => {
+    // Token + missing required params — tokens must STILL be scrubbed
+    const search = '?p1_token=secret-leak&sungrow_token=secret-leak2';
+
+    const result = Config.parseConfig(search);
+
+    // Config should be invalid (missing required params)
+    expect(result.valid).toBe(false);
+    // But tokens must still have been scrubbed from URL
+    expect(window.history.replaceState).toHaveBeenCalledTimes(1);
+    const replacedUrl = window.history.replaceState.mock.calls[0][2];
+    expect(replacedUrl).not.toContain('secret-leak');
+    expect(replacedUrl).not.toContain('p1_token');
+    expect(replacedUrl).not.toContain('sungrow_token');
   });
 });
 
