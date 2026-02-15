@@ -3,6 +3,8 @@
  * Initializes the dashboard and coordinates component lifecycle.
  *
  * CHANGELOG:
+ * - 2026-02-15: Always call updateStatusBar after polling, including failure path (BUGFIX)
+ * - 2026-02-15: Restrict null-origin postMessage to WebView context only (BUGFIX)
  * - 2026-02-15: Fix XSS in showConfigError — use textContent/DOM nodes instead of innerHTML (BUGFIX)
  * - 2026-02-15: Fix status bar update targeting .status-bar__label to preserve dot element (BUGFIX)
  * - 2026-02-15: Gate all polling on per-endpoint tokens or mock mode (BUGFIX)
@@ -24,10 +26,12 @@ const App = (() => {
   var timelineChart = null;
   /**
    * Configurable origin allowlist for postMessage validation (STORY-014).
-   * Includes same-origin and 'null' (Flutter WebView may post with null origin).
+   * The 'null' origin is accepted only when the Flutter WebView bridge is
+   * detected (see handleMessage), preventing sandboxed/data-URI contexts
+   * from injecting payloads in browser mode.
    * @type {string[]}
    */
-  var allowedOrigins = [window.location.origin, 'null'];
+  var allowedOrigins = [window.location.origin];
   /**
    * Show a user-friendly config error panel in the dashboard.
    * @param {string[]} errors - List of config error messages.
@@ -174,21 +178,19 @@ const App = (() => {
       var p1Data = results[0];
       var sungrowData = results[1];
 
-      // If both APIs failed, don't update the diagram
-      if (!p1Data || !sungrowData) {
-        return;
+      // Only update diagram and KPIs when both APIs return data
+      if (p1Data && sungrowData) {
+        var flows = PowerFlow.computeFlows(p1Data, sungrowData);
+        PowerFlow.updateAllFlows(flows);
+        PowerFlow.updateNodeValues(flows);
+
+        // Update KPI strip cards (STORY-008)
+        if (typeof KpiStrip !== 'undefined') {
+          KpiStrip.updateAll(p1Data, sungrowData, capacityData);
+        }
       }
 
-      var flows = PowerFlow.computeFlows(p1Data, sungrowData);
-      PowerFlow.updateAllFlows(flows);
-      PowerFlow.updateNodeValues(flows);
-
-      // Update KPI strip cards (STORY-008)
-      if (typeof KpiStrip !== 'undefined') {
-        KpiStrip.updateAll(p1Data, sungrowData, capacityData);
-      }
-
-      // Update status bar connectivity indicator (STORY-016)
+      // Always update status bar so offline/delayed states are rendered (STORY-013)
       updateStatusBar();
     });
   }
@@ -289,9 +291,13 @@ const App = (() => {
    * @param {MessageEvent} event - The postMessage event.
    */
   function handleMessage(event) {
-    // 1. Validate origin against allowlist (same-origin + null for WebView)
+    // 1. Validate origin against allowlist
     var origin = String(event.origin);
-    if (allowedOrigins.indexOf(origin) === -1) {
+    var allowed =
+      allowedOrigins.indexOf(origin) !== -1 ||
+      // Accept 'null' origin only when Flutter WebView bridge is present
+      (origin === 'null' && window.flutter_inappwebview);
+    if (!allowed) {
       console.warn('[App] Rejected postMessage from untrusted origin:', event.origin);
       return;
     }

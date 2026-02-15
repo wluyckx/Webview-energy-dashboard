@@ -103,7 +103,8 @@ describe('handleMessage (STORY-014)', () => {
     );
   });
 
-  test('accepts messages with null origin (Flutter WebView)', () => {
+  test('accepts messages with null origin when Flutter bridge is present', () => {
+    window.flutter_inappwebview = { callHandler: jest.fn() };
     const event = makeMessageEvent({
       origin: 'null',
       data: { type: 'token_refresh', p1_token: 'wv-p1' },
@@ -111,6 +112,18 @@ describe('handleMessage (STORY-014)', () => {
     App.handleMessage(event);
 
     expect(global.Config.updateTokens).toHaveBeenCalledWith({ p1_token: 'wv-p1' });
+    delete window.flutter_inappwebview;
+  });
+
+  test('rejects messages with null origin when Flutter bridge is absent', () => {
+    delete window.flutter_inappwebview;
+    const event = makeMessageEvent({
+      origin: 'null',
+      data: { type: 'token_refresh', p1_token: 'wv-p1' },
+    });
+    App.handleMessage(event);
+
+    expect(global.Config.updateTokens).not.toHaveBeenCalled();
   });
 
   // -----------------------------------------------------------------------
@@ -440,5 +453,70 @@ describe('updateStatusBar offline banner (STORY-013)', () => {
 
     const banner = document.getElementById('offline-banner');
     expect(banner.hasAttribute('hidden')).toBe(true);
+  });
+});
+
+// ===========================================================================
+// pollRealtimeData — status bar updated on API failure (STORY-013)
+// ===========================================================================
+describe('pollRealtimeData updates status bar on failure', () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div id="offline-banner" hidden></div>' +
+      '<div class="status-bar__placeholder">' +
+      '<span class="status-bar__dot"></span>' +
+      '<span class="status-bar__label">Waiting for connection...</span>' +
+      '</div>';
+    global.Config.getConfig.mockReturnValue({
+      p1_base: 'https://api.p1.wimluyckx.dev',
+      sungrow_base: 'https://api.sungrow.wimluyckx.dev',
+      p1_device_id: 'dev-1',
+      sungrow_device_id: 'dev-2',
+      p1_token: 'tok-p1',
+      sungrow_token: 'tok-sg',
+      mock: false,
+    });
+    global.ApiClient.isOffline.mockReset();
+    global.ApiClient.isStale.mockReset();
+    global.ApiClient.getLastSuccessTime.mockReset();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    global.Config.getConfig.mockReturnValue(null);
+    global.ApiClient.fetchP1Realtime.mockReset();
+    global.ApiClient.fetchSungrowRealtime.mockReset();
+    global.ApiClient.fetchP1Realtime.mockReturnValue(Promise.resolve(null));
+    global.ApiClient.fetchSungrowRealtime.mockReturnValue(Promise.resolve(null));
+  });
+
+  test('shows offline banner when both APIs return null', async () => {
+    global.ApiClient.fetchP1Realtime.mockReturnValue(Promise.resolve(null));
+    global.ApiClient.fetchSungrowRealtime.mockReturnValue(Promise.resolve(null));
+    global.ApiClient.isOffline.mockReturnValue(true);
+    global.ApiClient.isStale.mockReturnValue(false);
+    global.ApiClient.getLastSuccessTime.mockReturnValue(0);
+
+    App.startPolling();
+    // Flush Promise.all + .then microtasks
+    await new Promise((r) => setTimeout(r, 0));
+
+    const banner = document.getElementById('offline-banner');
+    expect(banner.hasAttribute('hidden')).toBe(false);
+  });
+
+  test('updates status bar label when one API returns null', async () => {
+    global.ApiClient.fetchP1Realtime.mockReturnValue(Promise.resolve(null));
+    global.ApiClient.fetchSungrowRealtime.mockReturnValue(Promise.resolve({ power_w: 100 }));
+    global.ApiClient.isOffline.mockReturnValue(false);
+    global.ApiClient.isStale.mockReturnValue(true);
+    global.ApiClient.getLastSuccessTime.mockReturnValue(0);
+
+    App.startPolling();
+    // Flush Promise.all + .then microtasks
+    await new Promise((r) => setTimeout(r, 0));
+
+    const label = document.querySelector('.status-bar__label');
+    expect(label.textContent).toContain('Delayed');
   });
 });
