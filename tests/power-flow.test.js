@@ -1,11 +1,13 @@
 /**
- * Tests for Power Flow Diagram module (STORY-005, STORY-006).
+ * Tests for Power Flow Diagram module (STORY-005, STORY-006, STORY-007).
  *
  * Validates SVG structure: 4 nodes, 5 connection lines,
  * power value text elements, and battery SoC placeholder.
  * Also validates flow animation helper functions.
+ * Also validates computeFlows data mapping and formatPower formatting.
  *
  * CHANGELOG:
+ * - 2026-02-15: computeFlows and formatPower tests (STORY-007)
  * - 2026-02-15: Flow animation helper tests (STORY-006)
  * - 2026-02-15: Initial layout tests (STORY-005)
  */
@@ -272,6 +274,145 @@ describe('PowerFlow', () => {
       PowerFlow.updateFlow('solar-home', { power: 5000, flowType: 'solar', maxPower: 5000 });
       var highOpacity = parseFloat(line.getAttribute('opacity'));
       expect(highOpacity).toBeCloseTo(1.0, 1);
+    });
+  });
+
+  // ---- STORY-007: computeFlows data mapping ----
+
+  describe('computeFlows', () => {
+    test('solar-to-home equals min(pv_power_w, load_power_w)', () => {
+      var p1 = { power_w: 0, import_power_w: 0 };
+      var sungrow = {
+        pv_power_w: 3000,
+        load_power_w: 2000,
+        battery_power_w: 0,
+        battery_soc_pct: 50,
+        export_power_w: 0,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      expect(flows.solarToHome).toBe(2000);
+
+      // When load is greater than solar
+      var sungrow2 = {
+        pv_power_w: 1500,
+        load_power_w: 2000,
+        battery_power_w: 0,
+        battery_soc_pct: 50,
+        export_power_w: 0,
+      };
+      var flows2 = PowerFlow.computeFlows(p1, sungrow2);
+      expect(flows2.solarToHome).toBe(1500);
+    });
+
+    test('battery discharging (negative battery_power_w) maps to batteryToHome', () => {
+      var p1 = { power_w: 0, import_power_w: 0 };
+      var sungrow = {
+        pv_power_w: 0,
+        load_power_w: 1200,
+        battery_power_w: -1200,
+        battery_soc_pct: 80,
+        export_power_w: 0,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      expect(flows.batteryToHome).toBe(1200);
+      expect(flows.solarToBattery).toBe(0);
+    });
+
+    test('battery charging (positive battery_power_w) maps to solarToBattery', () => {
+      var p1 = { power_w: 0, import_power_w: 0 };
+      var sungrow = {
+        pv_power_w: 4000,
+        load_power_w: 2000,
+        battery_power_w: 1500,
+        battery_soc_pct: 60,
+        export_power_w: 0,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      // solarToBattery = pv_power_w - solarToHome - solarToGrid = 4000 - 2000 - 0 = 2000
+      expect(flows.solarToBattery).toBe(2000);
+      expect(flows.batteryToHome).toBe(0);
+    });
+
+    test('grid importing (positive P1 import_power_w) maps to gridToHome', () => {
+      var p1 = { power_w: 500, import_power_w: 500 };
+      var sungrow = {
+        pv_power_w: 0,
+        load_power_w: 500,
+        battery_power_w: 0,
+        battery_soc_pct: 50,
+        export_power_w: 0,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      expect(flows.gridToHome).toBe(500);
+    });
+
+    test('zero solar production results in no solar flows', () => {
+      var p1 = { power_w: 1000, import_power_w: 1000 };
+      var sungrow = {
+        pv_power_w: 0,
+        load_power_w: 1000,
+        battery_power_w: 0,
+        battery_soc_pct: 50,
+        export_power_w: 0,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      expect(flows.solarToHome).toBe(0);
+      expect(flows.solarToBattery).toBe(0);
+      expect(flows.solarToGrid).toBe(0);
+    });
+
+    test('export when solar producing maps to solarToGrid', () => {
+      var p1 = { power_w: -750, import_power_w: 0 };
+      var sungrow = {
+        pv_power_w: 3450,
+        load_power_w: 2700,
+        battery_power_w: 0,
+        battery_soc_pct: 85,
+        export_power_w: 750,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      expect(flows.solarToGrid).toBe(750);
+    });
+
+    test('no export when solar not producing (solarToGrid = 0)', () => {
+      var p1 = { power_w: 0, import_power_w: 0 };
+      var sungrow = {
+        pv_power_w: 0,
+        load_power_w: 0,
+        battery_power_w: 0,
+        battery_soc_pct: 50,
+        export_power_w: 100,
+      };
+      var flows = PowerFlow.computeFlows(p1, sungrow);
+      expect(flows.solarToGrid).toBe(0);
+    });
+  });
+
+  // ---- STORY-007: formatPower formatting ----
+
+  describe('formatPower', () => {
+    test('450 returns "450 W"', () => {
+      expect(PowerFlow.formatPower(450)).toBe('450 W');
+    });
+
+    test('3450 returns "3.5 kW"', () => {
+      expect(PowerFlow.formatPower(3450)).toBe('3.5 kW');
+    });
+
+    test('0 returns "0 W"', () => {
+      expect(PowerFlow.formatPower(0)).toBe('0 W');
+    });
+
+    test('999 returns "999 W"', () => {
+      expect(PowerFlow.formatPower(999)).toBe('999 W');
+    });
+
+    test('1000 returns "1.0 kW"', () => {
+      expect(PowerFlow.formatPower(1000)).toBe('1.0 kW');
+    });
+
+    test('-1200 returns "-1.2 kW" (negative values preserved)', () => {
+      expect(PowerFlow.formatPower(-1200)).toBe('-1.2 kW');
     });
   });
 });

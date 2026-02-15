@@ -4,11 +4,9 @@
  * in a diamond/cross arrangement with connection lines between them.
  *
  * CHANGELOG:
+ * - 2026-02-15: Add computeFlows, formatPower, updateNodeValues, updateAllFlows (STORY-007)
  * - 2026-02-15: Add animated flow line helpers (STORY-006)
  * - 2026-02-15: Initial SVG layout with 4 nodes and 5 connection paths (STORY-005)
- *
- * TODO:
- * - Bind real-time data (STORY-007)
  */
 
 // eslint-disable-next-line no-unused-vars
@@ -529,6 +527,126 @@ const PowerFlow = (() => {
     }
   }
 
+  // ---- STORY-007: Real-time data binding helpers ----
+
+  /**
+   * Compute energy flow values from raw P1 and Sungrow API data.
+   *
+   * Pure function — easy to test. Applies the data mapping formulas
+   * and sign conventions from Architecture.md and project_idea.md.
+   *
+   * @param {Object} p1Data - P1 realtime data (power_w, import_power_w).
+   * @param {Object} sungrowData - Sungrow realtime data.
+   * @returns {Object} Computed flow values for all connections and nodes.
+   */
+  function computeFlows(p1Data, sungrowData) {
+    var solarToHome = Math.min(sungrowData.pv_power_w, sungrowData.load_power_w);
+    var solarToGrid =
+      sungrowData.export_power_w > 0 && sungrowData.pv_power_w > 0 ? sungrowData.export_power_w : 0;
+    var solarToBattery =
+      sungrowData.battery_power_w > 0
+        ? Math.max(0, sungrowData.pv_power_w - solarToHome - solarToGrid)
+        : 0;
+    var gridToHome = p1Data.import_power_w > 0 ? p1Data.import_power_w : 0;
+    var batteryToHome = sungrowData.battery_power_w < 0 ? Math.abs(sungrowData.battery_power_w) : 0;
+
+    return {
+      solarToHome: solarToHome,
+      solarToBattery: solarToBattery,
+      solarToGrid: solarToGrid,
+      gridToHome: gridToHome,
+      batteryToHome: batteryToHome,
+      solarTotal: sungrowData.pv_power_w,
+      homeTotal: sungrowData.load_power_w,
+      gridTotal: p1Data.power_w,
+      batterySoc: sungrowData.battery_soc_pct,
+      batteryPower: sungrowData.battery_power_w,
+    };
+  }
+
+  /**
+   * Format a power value in watts for display.
+   * Values < 1000W display as "XXX W", values >= 1000W as "X.X kW".
+   *
+   * @param {number} watts - Power value in watts.
+   * @returns {string} Formatted power string.
+   */
+  function formatPower(watts) {
+    var absW = Math.abs(watts);
+    if (absW >= 1000) {
+      return (watts / 1000).toFixed(1) + ' kW';
+    }
+    return Math.round(watts) + ' W';
+  }
+
+  /**
+   * Update the text elements in the SVG nodes with current power values.
+   *
+   * Finds text elements by data-power attribute and updates their content
+   * with formatted power values. Also updates battery SoC percentage.
+   *
+   * @param {Object} flows - Computed flow values from computeFlows().
+   */
+  function updateNodeValues(flows) {
+    var solarEl = document.querySelector('[data-power="solar"]');
+    if (solarEl) {
+      solarEl.textContent = formatPower(flows.solarTotal);
+    }
+
+    var homeEl = document.querySelector('[data-power="home"]');
+    if (homeEl) {
+      homeEl.textContent = formatPower(flows.homeTotal);
+    }
+
+    var gridEl = document.querySelector('[data-power="grid"]');
+    if (gridEl) {
+      gridEl.textContent = formatPower(flows.gridTotal);
+    }
+
+    var batteryEl = document.querySelector('[data-power="battery"]');
+    if (batteryEl) {
+      batteryEl.textContent = formatPower(Math.abs(flows.batteryPower));
+    }
+
+    var socEl = document.querySelector('[data-soc="battery"]');
+    if (socEl) {
+      socEl.textContent = Math.round(flows.batterySoc) + '%';
+    }
+  }
+
+  /**
+   * Update all five flow connection lines based on computed flow values.
+   *
+   * Calls updateFlow() for each connection with the appropriate power,
+   * flow type, and a residential max power reference of 5000W.
+   *
+   * @param {Object} flows - Computed flow values from computeFlows().
+   */
+  function updateAllFlows(flows) {
+    var maxPower = 5000; // reasonable max for residential system
+    updateFlow('solar-home', { power: flows.solarToHome, flowType: 'solar', maxPower: maxPower });
+    updateFlow('solar-battery', {
+      power: flows.solarToBattery,
+      flowType: 'battery-charge',
+      maxPower: maxPower,
+    });
+    updateFlow('solar-grid', {
+      power: flows.solarToGrid,
+      flowType: 'grid-export',
+      maxPower: maxPower,
+    });
+    updateFlow('grid-home', {
+      power: flows.gridToHome,
+      flowType: 'grid-import',
+      maxPower: maxPower,
+    });
+    updateFlow('battery-home', {
+      power: flows.batteryToHome,
+      flowType: 'battery-discharge',
+      maxPower: maxPower,
+    });
+  }
+
   return {
     createPowerFlowSVG: createPowerFlowSVG,
     init: init,
@@ -536,6 +654,10 @@ const PowerFlow = (() => {
     getFlowColor: getFlowColor,
     isFlowActive: isFlowActive,
     updateFlow: updateFlow,
+    computeFlows: computeFlows,
+    formatPower: formatPower,
+    updateNodeValues: updateNodeValues,
+    updateAllFlows: updateAllFlows,
   };
 })();
 
