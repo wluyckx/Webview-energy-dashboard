@@ -345,6 +345,74 @@
       }
 
       /* ============================================================
+         Section C: Energy Balance (STORY-010)
+         ============================================================ */
+      .energy-balance {
+        margin-top: var(--space-3);
+      }
+
+      .energy-balance__bar {
+        display: flex;
+        height: 32px;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: var(--bg-elevated);
+      }
+
+      .energy-balance__bar-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-data);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-primary);
+        min-width: 2px;
+      }
+
+      .energy-balance__badges {
+        display: flex;
+        gap: var(--space-3);
+        margin-top: var(--space-4);
+      }
+
+      .energy-balance__badge {
+        flex: 1;
+        background-color: rgba(0, 184, 148, 0.05);
+        border-radius: 20px;
+        padding: var(--space-3) var(--space-4);
+        text-align: center;
+      }
+
+      .energy-balance__badge-label {
+        display: block;
+        font-family: var(--font-body);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-1);
+      }
+
+      .energy-balance__badge-value {
+        font-family: var(--font-data);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--success);
+      }
+
+      .energy-balance__summary {
+        display: flex;
+        gap: var(--space-4);
+        margin-top: var(--space-4);
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+      }
+
+      /* ============================================================
          Responsive Breakpoints (FE_design.md)
          ============================================================ */
 
@@ -570,6 +638,8 @@
     <script src="src/mock-data.js"></script>
     <script src="src/api-client.js"></script>
     <script src="src/power-flow.js"></script>
+    <script src="src/kpi-strip.js"></script>
+    <script src="src/energy-balance.js"></script>
     <script src="src/app.js"></script>
   </body>
 </html>

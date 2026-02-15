@@ -15,7 +15,9 @@
     "PowerFlow": "readonly",
     "App": "readonly",
     "ApiClient": "readonly",
-    "MockData": "readonly"
+    "MockData": "readonly",
+    "KpiStrip": "readonly",
+    "EnergyBalance": "readonly"
   },
   "rules": {
     "no-unused-vars": "warn",
