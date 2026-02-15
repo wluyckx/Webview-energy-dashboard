@@ -4,8 +4,8 @@
   <project>Energy Dashboard</project>
   <last_updated>2026-02-15</last_updated>
   <total_stories>16</total_stories>
-  <done>13</done>
-  <progress>81%</progress>
+  <done>15</done>
+  <progress>94%</progress>
   <changelog>
     <entry date="2026-02-15">Incorporated FE_design.md: added STORY-016 (Status Bar), updated colors/typography refs, dark-mode-only, added accessibility requirements</entry>
     <entry date="2026-02-15">Initial backlog creation (15 stories across 5 phases)</entry>
@@ -503,7 +503,7 @@
   </notes>
 </story>
 
-<story id="STORY-011" status="pending" complexity="M" tdd="recommended">
+<story id="STORY-011" status="done" complexity="M" tdd="recommended">
   <title>Monthly Overview Bar Chart</title>
   <dependencies>STORY-009</dependencies>
   <description>
@@ -667,7 +667,7 @@
   </notes>
 </story>
 
-<story id="STORY-016" status="pending" complexity="S" tdd="recommended">
+<story id="STORY-016" status="done" complexity="S" tdd="recommended">
   <title>Status Bar Component</title>
   <dependencies>STORY-013</dependencies>
   <description>
