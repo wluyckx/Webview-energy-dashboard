@@ -4,8 +4,8 @@
   <project>Energy Dashboard</project>
   <last_updated>2026-02-15</last_updated>
   <total_stories>16</total_stories>
-  <done>15</done>
-  <progress>94%</progress>
+  <done>16</done>
+  <progress>100%</progress>
   <changelog>
     <entry date="2026-02-15">Incorporated FE_design.md: added STORY-016 (Status Bar), updated colors/typography refs, dark-mode-only, added accessibility requirements</entry>
     <entry date="2026-02-15">Initial backlog creation (15 stories across 5 phases)</entry>
@@ -634,7 +634,7 @@
   </notes>
 </story>
 
-<story id="STORY-015" status="pending" complexity="M" tdd="na">
+<story id="STORY-015" status="done" complexity="M" tdd="na">
   <title>Responsive Design and Dark Mode Polish</title>
   <dependencies>STORY-008, STORY-009, STORY-010</dependencies>
   <description>
