@@ -4,8 +4,8 @@
   <project>Energy Dashboard</project>
   <last_updated>2026-02-15</last_updated>
   <total_stories>16</total_stories>
-  <done>3</done>
-  <progress>19%</progress>
+  <done>6</done>
+  <progress>38%</progress>
   <changelog>
     <entry date="2026-02-15">Incorporated FE_design.md: added STORY-016 (Status Bar), updated colors/typography refs, dark-mode-only, added accessibility requirements</entry>
     <entry date="2026-02-15">Initial backlog creation (15 stories across 5 phases)</entry>
@@ -208,7 +208,7 @@
   </notes>
 </story>
 
-<story id="STORY-003" status="pending" complexity="M" tdd="required">
+<story id="STORY-003" status="done" complexity="M" tdd="required">
   <title>API Client with Authentication</title>
   <dependencies>STORY-002</dependencies>
   <description>
@@ -249,7 +249,7 @@
   </notes>
 </story>
 
-<story id="STORY-004" status="pending" complexity="S" tdd="recommended">
+<story id="STORY-004" status="done" complexity="S" tdd="recommended">
   <title>Mock Data System</title>
   <dependencies>STORY-002</dependencies>
   <description>
@@ -315,7 +315,7 @@
   </notes>
 </story>
 
-<story id="STORY-006" status="pending" complexity="M" tdd="recommended">
+<story id="STORY-006" status="done" complexity="M" tdd="recommended">
   <title>Animated Energy Flow Lines</title>
   <dependencies>STORY-005</dependencies>
   <description>
@@ -706,13 +706,13 @@
 
 <progress>
   <phase_summary>
-    <phase id="1" name="Foundation" stories="4" done="2" progress="50%" link="stories/phase-1-foundation.md" />
-    <phase id="2" name="Power Flow" stories="3" done="1" progress="33%" link="stories/phase-2-power-flow.md" />
+    <phase id="1" name="Foundation" stories="4" done="4" progress="100%" link="stories/phase-1-foundation.md" />
+    <phase id="2" name="Power Flow" stories="3" done="2" progress="67%" link="stories/phase-2-power-flow.md" />
     <phase id="3" name="Dashboard Core" stories="2" done="0" progress="0%" link="stories/phase-3-dashboard-core.md" />
     <phase id="4" name="Energy Analytics" stories="2" done="0" progress="0%" link="stories/phase-4-energy-analytics.md" />
     <phase id="5" name="Integration and Polish" stories="5" done="0" progress="0%" link="stories/phase-5-integration.md" />
   </phase_summary>
-  <total stories="16" done="3" progress="19%" />
+  <total stories="16" done="6" progress="38%" />
 </progress>
 
 <!-- ============================================================ -->
