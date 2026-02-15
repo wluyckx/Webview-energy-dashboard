@@ -1,8 +1,8 @@
 # Phase 3: Dashboard Core
 
-**Status**: In Progress
+**Status**: Done
 **Stories**: 2
-**Completed**: 1
+**Completed**: 2
 **Depends On**: Phase 1 (STORY-003 for API client)
 
 ## Phase Completion Criteria
@@ -62,7 +62,7 @@
 
 ---
 
-<story id="STORY-009" status="pending" complexity="L" tdd="recommended">
+<story id="STORY-009" status="done" complexity="L" tdd="recommended">
   <title>Power Timeline Chart</title>
   <dependencies>STORY-003</dependencies>
   <description>

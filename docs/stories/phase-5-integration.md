@@ -2,7 +2,7 @@
 
 **Status**: In Progress
 **Stories**: 5
-**Completed**: 1
+**Completed**: 3
 **Depends On**: Phase 2 (STORY-007), Phase 3 (STORY-008, STORY-009), Phase 4 (STORY-010)
 
 ## Phase Completion Criteria
@@ -49,7 +49,7 @@
 
 ---
 
-<story id="STORY-013" status="pending" complexity="M" tdd="required">
+<story id="STORY-013" status="done" complexity="M" tdd="required">
   <title>Error Handling and Staleness Indicators</title>
   <dependencies>STORY-007, STORY-008</dependencies>
   <description>
@@ -108,7 +108,7 @@
 
 ---
 
-<story id="STORY-014" status="pending" complexity="M" tdd="recommended">
+<story id="STORY-014" status="done" complexity="M" tdd="recommended">
   <title>Flutter WebView Integration</title>
   <dependencies>STORY-007</dependencies>
   <description>
