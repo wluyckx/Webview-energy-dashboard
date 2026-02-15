@@ -1,8 +1,8 @@
 # Phase 5: Integration & Polish
 
-**Status**: Not Started
+**Status**: In Progress
 **Stories**: 5
-**Completed**: 0
+**Completed**: 1
 **Depends On**: Phase 2 (STORY-007), Phase 3 (STORY-008, STORY-009), Phase 4 (STORY-010)
 
 ## Phase Completion Criteria
@@ -15,7 +15,7 @@
 
 ## Stories
 
-<story id="STORY-012" status="pending" complexity="S" tdd="na">
+<story id="STORY-012" status="done" complexity="S" tdd="na">
   <title>Cost Dashboard Stub</title>
   <dependencies>STORY-001</dependencies>
   <description>
