@@ -1,8 +1,8 @@
 # Phase 3: Dashboard Core
 
-**Status**: Not Started
+**Status**: In Progress
 **Stories**: 2
-**Completed**: 0
+**Completed**: 1
 **Depends On**: Phase 1 (STORY-003 for API client)
 
 ## Phase Completion Criteria
@@ -14,7 +14,7 @@
 
 ## Stories
 
-<story id="STORY-008" status="pending" complexity="M" tdd="recommended">
+<story id="STORY-008" status="done" complexity="M" tdd="recommended">
   <title>KPI Strip Cards</title>
   <dependencies>STORY-003</dependencies>
   <description>

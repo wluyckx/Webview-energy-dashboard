@@ -4,8 +4,8 @@
   <project>Energy Dashboard</project>
   <last_updated>2026-02-15</last_updated>
   <total_stories>16</total_stories>
-  <done>8</done>
-  <progress>50%</progress>
+  <done>10</done>
+  <progress>63%</progress>
   <changelog>
     <entry date="2026-02-15">Incorporated FE_design.md: added STORY-016 (Status Bar), updated colors/typography refs, dark-mode-only, added accessibility requirements</entry>
     <entry date="2026-02-15">Initial backlog creation (15 stories across 5 phases)</entry>
@@ -392,7 +392,7 @@
 
 <phase id="3" name="Dashboard Core" story_file="docs/stories/phase-3-dashboard-core.md">
 
-<story id="STORY-008" status="pending" complexity="M" tdd="recommended">
+<story id="STORY-008" status="done" complexity="M" tdd="recommended">
   <title>KPI Strip Cards</title>
   <dependencies>STORY-003</dependencies>
   <description>
@@ -469,7 +469,7 @@
 
 <phase id="4" name="Energy Analytics" story_file="docs/stories/phase-4-energy-analytics.md">
 
-<story id="STORY-010" status="pending" complexity="M" tdd="required">
+<story id="STORY-010" status="done" complexity="M" tdd="required">
   <title>Today's Energy Balance</title>
   <dependencies>STORY-003</dependencies>
   <description>
@@ -708,11 +708,11 @@
   <phase_summary>
     <phase id="1" name="Foundation" stories="4" done="4" progress="100%" link="stories/phase-1-foundation.md" />
     <phase id="2" name="Power Flow" stories="3" done="3" progress="100%" link="stories/phase-2-power-flow.md" />
-    <phase id="3" name="Dashboard Core" stories="2" done="0" progress="0%" link="stories/phase-3-dashboard-core.md" />
-    <phase id="4" name="Energy Analytics" stories="2" done="0" progress="0%" link="stories/phase-4-energy-analytics.md" />
+    <phase id="3" name="Dashboard Core" stories="2" done="1" progress="50%" link="stories/phase-3-dashboard-core.md" />
+    <phase id="4" name="Energy Analytics" stories="2" done="1" progress="50%" link="stories/phase-4-energy-analytics.md" />
     <phase id="5" name="Integration and Polish" stories="5" done="1" progress="20%" link="stories/phase-5-integration.md" />
   </phase_summary>
-  <total stories="16" done="8" progress="50%" />
+  <total stories="16" done="10" progress="63%" />
 </progress>
 
 <!-- ============================================================ -->
