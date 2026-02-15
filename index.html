@@ -41,6 +41,7 @@
 
         /* Status */
         --success: #00b894;
+        --success-tint: #00b8940d;
         --warning: #fdcb6e;
         --danger: #e17055;
         --accent: #74b9ff;
@@ -168,6 +169,14 @@
         border-radius: 12px;
         padding: var(--space-5);
         min-height: 80px;
+        transition:
+          transform 200ms ease,
+          box-shadow 200ms ease;
+      }
+
+      .dashboard-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
       .dashboard-section__title {
@@ -209,7 +218,7 @@
 
       .section-power-flow__hero-unit {
         font-family: var(--font-body);
-        font-size: 24px;
+        font-size: 0.6em;
         font-weight: 400;
         color: var(--text-secondary);
       }
@@ -246,11 +255,14 @@
         padding: var(--space-4);
         min-height: 80px;
         border-left: 3px solid var(--text-tertiary);
+        transition:
+          transform 200ms ease,
+          box-shadow 200ms ease;
       }
 
       .kpi-card__label {
         font-family: var(--font-body);
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.08em;
@@ -267,7 +279,7 @@
 
       .kpi-card__unit {
         font-family: var(--font-body);
-        font-size: 16px;
+        font-size: 0.6em;
         font-weight: 400;
         color: var(--text-secondary);
       }
@@ -278,6 +290,11 @@
         font-weight: 400;
         color: var(--text-tertiary);
         margin-top: var(--space-1);
+      }
+
+      .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
       /* KPI accent colors */
@@ -378,7 +395,7 @@
 
       .energy-balance__badge {
         flex: 1;
-        background-color: rgba(0, 184, 148, 0.05);
+        background-color: var(--success-tint);
         border-radius: 20px;
         padding: var(--space-3) var(--space-4);
         text-align: center;
@@ -609,8 +626,15 @@
         <!-- Section D: Power Timeline (24h) — STORY-009 -->
         <section id="section-d" class="dashboard-section" aria-label="Power Timeline">
           <h2 class="dashboard-section__title">Power Timeline</h2>
-          <div style="position: relative; width: 100%; height: 300px">
-            <canvas id="timeline-chart"></canvas>
+          <div
+            style="position: relative; width: 100%; height: 300px"
+            role="img"
+            aria-label="24-hour power timeline chart"
+          >
+            <canvas
+              id="timeline-chart"
+              aria-label="Power timeline showing solar, grid, and battery data over 24 hours"
+            ></canvas>
           </div>
         </section>
       </div>
@@ -628,8 +652,15 @@
       <!-- Section F: Monthly Overview — STORY-011 -->
       <section id="section-f" class="dashboard-section" aria-label="Monthly Overview">
         <h2 class="dashboard-section__title">Monthly Overview</h2>
-        <div style="position: relative; width: 100%; height: 300px">
-          <canvas id="monthly-chart"></canvas>
+        <div
+          style="position: relative; width: 100%; height: 300px"
+          role="img"
+          aria-label="Monthly energy overview chart"
+        >
+          <canvas
+            id="monthly-chart"
+            aria-label="Monthly overview showing daily solar production and consumption"
+          ></canvas>
         </div>
       </section>
     </main>
