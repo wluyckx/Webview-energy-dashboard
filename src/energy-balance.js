@@ -50,7 +50,7 @@ const EnergyBalance = (() => {
     });
 
     var selfConsumption = totalProduction > 0 ? (1 - totalExport / totalProduction) * 100 : 0;
-    var selfSufficiency = totalConsumption > 0 ? (1 - totalImport / totalConsumption) * 100 : 0;
+    var selfSufficiency = totalConsumption > 0 ? (1 - totalImport / totalConsumption) * 100 : 100;
 
     return {
       production: totalProduction,

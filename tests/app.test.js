@@ -103,6 +103,16 @@ describe('handleMessage (STORY-014)', () => {
     );
   });
 
+  test('accepts messages with null origin (Flutter WebView)', () => {
+    const event = makeMessageEvent({
+      origin: 'null',
+      data: { type: 'token_refresh', p1_token: 'wv-p1' },
+    });
+    App.handleMessage(event);
+
+    expect(global.Config.updateTokens).toHaveBeenCalledWith({ p1_token: 'wv-p1' });
+  });
+
   // -----------------------------------------------------------------------
   // Schema validation
   // -----------------------------------------------------------------------
@@ -377,5 +387,57 @@ describe('formatLastUpdate (STORY-016)', () => {
     const result = App.formatLastUpdate(d.getTime());
 
     expect(result).toBe('03:05:09');
+  });
+});
+
+// ===========================================================================
+// updateStatusBar — offline banner toggle (STORY-013 AC2)
+// ===========================================================================
+describe('updateStatusBar offline banner (STORY-013)', () => {
+  beforeEach(() => {
+    // Set up minimal DOM for updateStatusBar
+    document.body.innerHTML =
+      '<div id="offline-banner" hidden></div>' +
+      '<div class="status-bar__placeholder">' +
+      '<span class="status-bar__dot"></span>' +
+      '</div>';
+    global.ApiClient.isOffline.mockReset();
+    global.ApiClient.isStale.mockReset();
+    global.ApiClient.getLastSuccessTime.mockReset();
+    global.ApiClient.isOffline.mockReturnValue(false);
+    global.ApiClient.isStale.mockReturnValue(false);
+    global.ApiClient.getLastSuccessTime.mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('shows offline banner when status is offline', () => {
+    global.ApiClient.isOffline.mockReturnValue(true);
+    App.updateStatusBar();
+
+    const banner = document.getElementById('offline-banner');
+    expect(banner.hasAttribute('hidden')).toBe(false);
+  });
+
+  test('hides offline banner when status is live', () => {
+    global.ApiClient.isOffline.mockReturnValue(false);
+    // First make it visible
+    document.getElementById('offline-banner').removeAttribute('hidden');
+    App.updateStatusBar();
+
+    const banner = document.getElementById('offline-banner');
+    expect(banner.hasAttribute('hidden')).toBe(true);
+  });
+
+  test('hides offline banner when status is delayed', () => {
+    global.ApiClient.isOffline.mockReturnValue(false);
+    global.ApiClient.isStale.mockReturnValue(true);
+    document.getElementById('offline-banner').removeAttribute('hidden');
+    App.updateStatusBar();
+
+    const banner = document.getElementById('offline-banner');
+    expect(banner.hasAttribute('hidden')).toBe(true);
   });
 });

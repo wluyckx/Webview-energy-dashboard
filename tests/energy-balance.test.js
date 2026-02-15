@@ -176,7 +176,7 @@ describe('EnergyBalance', () => {
       expect(balance.selfConsumption).toBe(0);
     });
 
-    test('zero consumption returns 0% self-sufficiency (no division by zero)', () => {
+    test('zero consumption returns 100% self-sufficiency (per spec)', () => {
       var zeroConsumptionSeries = {
         device_id: 'inverter-01',
         frame: 'day',
@@ -195,7 +195,7 @@ describe('EnergyBalance', () => {
       };
       var balance = EnergyBalance.computeBalance(zeroConsumptionSeries);
       expect(balance.consumption).toBe(0);
-      expect(balance.selfSufficiency).toBe(0);
+      expect(balance.selfSufficiency).toBe(100);
     });
 
     test('self-consumption and self-sufficiency are clamped between 0 and 100', () => {
@@ -238,7 +238,8 @@ describe('EnergyBalance', () => {
       expect(balance.batteryDischarge).toBe(0);
       expect(balance.consumption).toBe(0);
       expect(balance.selfConsumption).toBe(0);
-      expect(balance.selfSufficiency).toBe(0);
+      // Zero consumption → 100% self-sufficiency (per spec: no imports needed)
+      expect(balance.selfSufficiency).toBe(100);
     });
   });
 });

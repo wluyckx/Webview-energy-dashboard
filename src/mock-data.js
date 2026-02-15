@@ -192,6 +192,51 @@ const MockData = (() => {
   }
 
   /**
+   * Mock P1 series (day frame) data with hourly buckets.
+   * P1 meters report import/export power — no PV or battery fields.
+   *
+   * @returns {Object} Mock P1 series response.
+   */
+  function getMockP1SeriesDay() {
+    return {
+      device_id: 'p1-meter-01',
+      frame: 'day',
+      series: [
+        {
+          bucket: todayAt(6),
+          avg_import_power_w: 800,
+          avg_export_power_w: 0,
+          sample_count: 12,
+        },
+        {
+          bucket: todayAt(7),
+          avg_import_power_w: 400,
+          avg_export_power_w: 0,
+          sample_count: 60,
+        },
+        {
+          bucket: todayAt(8),
+          avg_import_power_w: 0,
+          avg_export_power_w: 250,
+          sample_count: 60,
+        },
+        {
+          bucket: todayAt(9),
+          avg_import_power_w: 0,
+          avg_export_power_w: 600,
+          sample_count: 60,
+        },
+        {
+          bucket: todayAt(10),
+          avg_import_power_w: 0,
+          avg_export_power_w: 500,
+          sample_count: 60,
+        },
+      ],
+    };
+  }
+
+  /**
    * Mock P1 capacity data for the current month.
    *
    * @returns {Object} Mock P1 capacity response.
@@ -222,6 +267,7 @@ const MockData = (() => {
   // Public API
   return {
     getMockP1Realtime: getMockP1Realtime,
+    getMockP1SeriesDay: getMockP1SeriesDay,
     getMockSungrowRealtime: getMockSungrowRealtime,
     getMockSungrowSeriesDay: getMockSungrowSeriesDay,
     getMockP1Capacity: getMockP1Capacity,

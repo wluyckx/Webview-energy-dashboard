@@ -146,6 +146,59 @@ describe('getMockSungrowSeriesDay', () => {
 });
 
 // ===========================================================================
+// 3b. getMockP1SeriesDay
+// ===========================================================================
+describe('getMockP1SeriesDay', () => {
+  test('returns object with device_id, frame, and series', () => {
+    const data = MockData.getMockP1SeriesDay();
+    expect(data).toHaveProperty('device_id');
+    expect(data).toHaveProperty('frame');
+    expect(data).toHaveProperty('series');
+  });
+
+  test('device_id is p1-meter-01', () => {
+    const data = MockData.getMockP1SeriesDay();
+    expect(data.device_id).toBe('p1-meter-01');
+  });
+
+  test('frame is "day"', () => {
+    const data = MockData.getMockP1SeriesDay();
+    expect(data.frame).toBe('day');
+  });
+
+  test('series is a non-empty array', () => {
+    const data = MockData.getMockP1SeriesDay();
+    expect(Array.isArray(data.series)).toBe(true);
+    expect(data.series.length).toBeGreaterThan(0);
+  });
+
+  test('series items have P1-shaped fields (avg_import_power_w, avg_export_power_w)', () => {
+    const data = MockData.getMockP1SeriesDay();
+    const item = data.series[0];
+    expect(item).toHaveProperty('bucket');
+    expect(item).toHaveProperty('avg_import_power_w');
+    expect(item).toHaveProperty('avg_export_power_w');
+    expect(item).toHaveProperty('sample_count');
+  });
+
+  test('series items do NOT have Sungrow-specific fields', () => {
+    const data = MockData.getMockP1SeriesDay();
+    const item = data.series[0];
+    expect(item).not.toHaveProperty('avg_pv_power_w');
+    expect(item).not.toHaveProperty('avg_battery_power_w');
+    expect(item).not.toHaveProperty('avg_load_power_w');
+  });
+
+  test("bucket timestamps use today's date", () => {
+    const data = MockData.getMockP1SeriesDay();
+    const today = todayDateString();
+    data.series.forEach((item) => {
+      expect(item.bucket).toContain(today);
+    });
+  });
+});
+
+// ===========================================================================
 // 4. getMockP1Capacity
 // ===========================================================================
 describe('getMockP1Capacity', () => {

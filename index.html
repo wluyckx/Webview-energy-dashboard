@@ -160,6 +160,21 @@
         background-color: var(--text-tertiary);
       }
 
+      /* Offline banner — red top bar (STORY-013 AC2) */
+      .offline-banner {
+        background-color: var(--danger);
+        color: #fff;
+        text-align: center;
+        padding: var(--space-1) var(--space-4);
+        font-family: var(--font-body);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .offline-banner[hidden] {
+        display: none;
+      }
+
       /* ============================================================
          Dashboard Sections (shared)
          ============================================================ */
@@ -433,8 +448,8 @@
          Responsive Breakpoints (FE_design.md)
          ============================================================ */
 
-      /* < 380px: Single column, compact */
-      @media (max-width: 379px) {
+      /* < 400px: Single column, compact — KPI cards stack vertically (AC6) */
+      @media (max-width: 399px) {
         .dashboard {
           padding: 0 var(--space-3);
           gap: var(--space-5);
@@ -453,7 +468,7 @@
         }
 
         .kpi-grid {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr;
           gap: var(--space-2);
         }
 
@@ -562,6 +577,11 @@
     </style>
   </head>
   <body>
+    <!-- Offline banner — shown when both APIs unreachable (STORY-013 AC2) -->
+    <div class="offline-banner" id="offline-banner" role="alert" hidden>
+      Dashboard is offline — unable to reach APIs
+    </div>
+
     <!-- Status Bar — Component 7 placeholder (future STORY-016) -->
     <header class="status-bar" role="banner" aria-label="System status">
       <div class="status-bar__placeholder">

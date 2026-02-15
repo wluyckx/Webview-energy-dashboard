@@ -233,7 +233,7 @@ const ApiClient = (() => {
    */
   function fetchP1Series(config, frame) {
     if (config.mock) {
-      return Promise.resolve(MockData.getMockSungrowSeriesDay());
+      return Promise.resolve(MockData.getMockP1SeriesDay());
     }
     var url = config.p1_base + '/v1/series?device_id=' + config.p1_device_id + '&frame=' + frame;
 

@@ -20,6 +20,12 @@ const App = (() => {
   /** Chart.js timeline chart instance (STORY-009). */
   var timelineChart = null;
   /**
+   * Configurable origin allowlist for postMessage validation (STORY-014).
+   * Includes same-origin and 'null' (Flutter WebView may post with null origin).
+   * @type {string[]}
+   */
+  var allowedOrigins = [window.location.origin, 'null'];
+  /**
    * Show a user-friendly config error panel in the dashboard.
    * @param {string[]} errors - List of config error messages.
    */
@@ -118,6 +124,16 @@ const App = (() => {
     }
 
     label.textContent = text;
+
+    // Toggle offline banner (STORY-013 AC2)
+    var banner = document.getElementById('offline-banner');
+    if (banner) {
+      if (indicator.status === 'offline') {
+        banner.removeAttribute('hidden');
+      } else {
+        banner.setAttribute('hidden', '');
+      }
+    }
   }
 
   /**
@@ -130,6 +146,11 @@ const App = (() => {
   function pollRealtimeData() {
     var config = Config.getConfig();
     if (!config) {
+      return Promise.resolve();
+    }
+
+    // Skip authenticated fetches until tokens are delivered (HC-002)
+    if (!config.p1_token && !config.sungrow_token && !config.mock) {
       return Promise.resolve();
     }
 
@@ -239,13 +260,15 @@ const App = (() => {
 
   /**
    * Validate and handle incoming postMessage events from Flutter WebView.
-   * Security: only accepts messages from same origin (AC5, STORY-014).
+   * Security: validates origin against configurable allowlist (AC5, STORY-014).
+   * Accepts same-origin and 'null' (Flutter WebView may post with null origin).
    *
    * @param {MessageEvent} event - The postMessage event.
    */
   function handleMessage(event) {
-    // 1. Validate origin — same-origin only (Flutter WebView posts from same origin)
-    if (event.origin !== window.location.origin) {
+    // 1. Validate origin against allowlist (same-origin + null for WebView)
+    var origin = String(event.origin);
+    if (allowedOrigins.indexOf(origin) === -1) {
       console.warn('[App] Rejected postMessage from untrusted origin:', event.origin);
       return;
     }

@@ -659,6 +659,10 @@ describe('mock mode (config.mock = true)', () => {
     expect(result).toHaveProperty('frame');
     expect(result).toHaveProperty('series');
     expect(Array.isArray(result.series)).toBe(true);
+    // Verify P1-shaped data (not Sungrow-shaped)
+    expect(result.device_id).toBe('p1-meter-01');
+    expect(result.series[0]).toHaveProperty('avg_import_power_w');
+    expect(result.series[0]).not.toHaveProperty('avg_pv_power_w');
   });
 
   test('fetchSungrowSeries returns mock series data without calling fetch', async () => {
