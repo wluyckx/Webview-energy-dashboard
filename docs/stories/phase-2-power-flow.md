@@ -14,7 +14,7 @@
 
 ## Stories
 
-<story id="STORY-005" status="in_progress" complexity="L" tdd="recommended">
+<story id="STORY-005" status="done" complexity="L" tdd="recommended">
   <title>SVG Power Flow Diagram Layout</title>
   <dependencies>STORY-001</dependencies>
   <description>
