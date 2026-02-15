@@ -1,0 +1,8 @@
+{
+  "device_id": "p1-meter-01",
+  "ts": "2026-02-15T10:30:00",
+  "power_w": 450,
+  "import_power_w": 450,
+  "energy_import_kwh": 12345.678,
+  "energy_export_kwh": 9876.543
+}

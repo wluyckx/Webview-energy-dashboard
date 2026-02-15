@@ -1,0 +1,12 @@
+{
+  "device_id": "inverter-01",
+  "ts": "2026-02-15T10:30:00",
+  "pv_power_w": 3450.5,
+  "pv_daily_kwh": 12.3,
+  "battery_power_w": -1200.0,
+  "battery_soc_pct": 85.0,
+  "battery_temp_c": 28.5,
+  "load_power_w": 1500.0,
+  "export_power_w": 750.5,
+  "sample_count": 1
+}

@@ -4,10 +4,10 @@
  * in a diamond/cross arrangement with connection lines between them.
  *
  * CHANGELOG:
+ * - 2026-02-15: Add animated flow line helpers (STORY-006)
  * - 2026-02-15: Initial SVG layout with 4 nodes and 5 connection paths (STORY-005)
  *
  * TODO:
- * - Add animated flow lines (STORY-006)
  * - Bind real-time data (STORY-007)
  */
 
@@ -422,7 +422,121 @@ const PowerFlow = (() => {
     container.appendChild(svg);
   }
 
-  return { createPowerFlowSVG: createPowerFlowSVG, init: init };
+  // ---- STORY-006: Flow animation helpers ----
+
+  /**
+   * Flow-type to CSS custom property mapping.
+   */
+  var FLOW_COLORS = {
+    solar: 'var(--solar)',
+    'grid-import': 'var(--grid-import)',
+    'grid-export': 'var(--grid-export)',
+    'battery-charge': 'var(--battery-charge)',
+    'battery-discharge': 'var(--battery-discharge)',
+  };
+
+  /**
+   * Calculate stroke-width proportional to power magnitude.
+   * Returns 0 for zero power. For any non-zero power, returns a value
+   * between 1 (minimum visible) and 6 (maximum thickness).
+   *
+   * @param {number} powerValue - Absolute power in watts.
+   * @param {number} maxPower - Reference maximum power for scaling.
+   * @returns {number} Stroke width in px.
+   */
+  function getStrokeWidth(powerValue, maxPower) {
+    if (powerValue === 0) {
+      return 0;
+    }
+    var ratio = Math.min(Math.abs(powerValue) / maxPower, 1);
+    // Linear scale from 1 to 6
+    var width = 1 + ratio * 5;
+    return Math.max(1, Math.min(6, width));
+  }
+
+  /**
+   * Return the CSS variable string for a given flow type.
+   *
+   * @param {string} flowType - One of: solar, grid-import, grid-export,
+   *   battery-charge, battery-discharge.
+   * @returns {string} CSS variable string, e.g. 'var(--solar)'.
+   */
+  function getFlowColor(flowType) {
+    return FLOW_COLORS[flowType] || 'var(--text-tertiary)';
+  }
+
+  /**
+   * Determine whether a flow should be shown as active (animated).
+   *
+   * @param {number} powerValue - Power in watts (positive or negative).
+   * @returns {boolean} True when power is non-zero.
+   */
+  function isFlowActive(powerValue) {
+    return powerValue !== 0;
+  }
+
+  /**
+   * Update a connection line's visual appearance based on power flow.
+   *
+   * Finds the <line> element with data-connection matching connectionId,
+   * then adjusts stroke colour, width, opacity and animation class.
+   *
+   * When power is 0 the line reverts to a faint inactive state.
+   * When power > 0 the line is coloured and animated in the forward
+   * direction; negative power triggers the reverse animation.
+   *
+   * @param {string} connectionId - Connection identifier, e.g. 'solar-home'.
+   * @param {Object} options
+   * @param {number} options.power - Signed power value in watts.
+   * @param {string} options.flowType - Flow colour key.
+   * @param {number} options.maxPower - Reference max for stroke scaling.
+   */
+  function updateFlow(connectionId, options) {
+    var line = document.querySelector('[data-connection="' + connectionId + '"]');
+    if (!line) {
+      return;
+    }
+
+    var power = options.power;
+    var flowType = options.flowType;
+    var maxPower = options.maxPower;
+
+    if (!isFlowActive(power)) {
+      // Inactive state
+      line.setAttribute('stroke', 'var(--text-tertiary)');
+      line.setAttribute('stroke-width', '1');
+      line.setAttribute('opacity', '0.1');
+      line.setAttribute('class', 'flow-line--inactive');
+      return;
+    }
+
+    // Active state
+    var color = getFlowColor(flowType);
+    var width = getStrokeWidth(Math.abs(power), maxPower);
+    // Opacity scales from 0.8 (low power) to 1.0 (max power)
+    var ratio = Math.min(Math.abs(power) / maxPower, 1);
+    var opacity = 0.8 + ratio * 0.2;
+
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', String(width));
+    line.setAttribute('opacity', String(opacity));
+
+    // Direction: positive = forward, negative = reverse
+    if (power < 0) {
+      line.setAttribute('class', 'flow-line--reverse');
+    } else {
+      line.setAttribute('class', 'flow-line--active');
+    }
+  }
+
+  return {
+    createPowerFlowSVG: createPowerFlowSVG,
+    init: init,
+    getStrokeWidth: getStrokeWidth,
+    getFlowColor: getFlowColor,
+    isFlowActive: isFlowActive,
+    updateFlow: updateFlow,
+  };
 })();
 
 // Node.js/Jest compatibility

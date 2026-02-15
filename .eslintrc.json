@@ -13,7 +13,8 @@
   "globals": {
     "Config": "readonly",
     "PowerFlow": "readonly",
-    "App": "readonly"
+    "App": "readonly",
+    "ApiClient": "readonly"
   },
   "rules": {
     "no-unused-vars": "warn",

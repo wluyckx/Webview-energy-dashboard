@@ -1,10 +1,12 @@
 /**
- * Tests for Power Flow Diagram module (STORY-005).
+ * Tests for Power Flow Diagram module (STORY-005, STORY-006).
  *
  * Validates SVG structure: 4 nodes, 5 connection lines,
  * power value text elements, and battery SoC placeholder.
+ * Also validates flow animation helper functions.
  *
  * CHANGELOG:
+ * - 2026-02-15: Flow animation helper tests (STORY-006)
  * - 2026-02-15: Initial layout tests (STORY-005)
  */
 
@@ -131,6 +133,145 @@ describe('PowerFlow', () => {
       expect(() => {
         PowerFlow.init(undefined);
       }).not.toThrow();
+    });
+  });
+
+  // ---- STORY-006: Flow animation helpers ----
+
+  describe('Flow animation helpers', () => {
+    describe('getStrokeWidth', () => {
+      test('returns 0 for zero power', () => {
+        expect(PowerFlow.getStrokeWidth(0, 5000)).toBe(0);
+      });
+
+      test('returns minimum 1 for small non-zero power', () => {
+        expect(PowerFlow.getStrokeWidth(1, 5000)).toBeGreaterThanOrEqual(1);
+      });
+
+      test('returns max 6 for power >= maxPower', () => {
+        expect(PowerFlow.getStrokeWidth(5000, 5000)).toBe(6);
+        expect(PowerFlow.getStrokeWidth(7000, 5000)).toBe(6);
+      });
+
+      test('scales proportionally between 1 and 6', () => {
+        var half = PowerFlow.getStrokeWidth(2500, 5000);
+        // At 50% power, stroke = 1 + 0.5 * 5 = 3.5
+        expect(half).toBeCloseTo(3.5, 1);
+        // Quarter power: 1 + 0.25 * 5 = 2.25
+        var quarter = PowerFlow.getStrokeWidth(1250, 5000);
+        expect(quarter).toBeCloseTo(2.25, 1);
+        // Verify ordering
+        expect(quarter).toBeLessThan(half);
+        expect(half).toBeLessThan(6);
+      });
+    });
+
+    describe('getFlowColor', () => {
+      test('returns correct CSS variable for solar', () => {
+        expect(PowerFlow.getFlowColor('solar')).toBe('var(--solar)');
+      });
+
+      test('returns correct CSS variable for grid-import', () => {
+        expect(PowerFlow.getFlowColor('grid-import')).toBe('var(--grid-import)');
+      });
+
+      test('returns correct CSS variable for grid-export', () => {
+        expect(PowerFlow.getFlowColor('grid-export')).toBe('var(--grid-export)');
+      });
+
+      test('returns correct CSS variable for battery-charge', () => {
+        expect(PowerFlow.getFlowColor('battery-charge')).toBe('var(--battery-charge)');
+      });
+
+      test('returns correct CSS variable for battery-discharge', () => {
+        expect(PowerFlow.getFlowColor('battery-discharge')).toBe('var(--battery-discharge)');
+      });
+
+      test('returns default for unknown type', () => {
+        expect(PowerFlow.getFlowColor('unknown')).toBe('var(--text-tertiary)');
+        expect(PowerFlow.getFlowColor('')).toBe('var(--text-tertiary)');
+      });
+    });
+
+    describe('isFlowActive', () => {
+      test('returns false for zero power', () => {
+        expect(PowerFlow.isFlowActive(0)).toBe(false);
+      });
+
+      test('returns true for positive power', () => {
+        expect(PowerFlow.isFlowActive(100)).toBe(true);
+        expect(PowerFlow.isFlowActive(1)).toBe(true);
+      });
+
+      test('returns true for negative power', () => {
+        expect(PowerFlow.isFlowActive(-100)).toBe(true);
+        expect(PowerFlow.isFlowActive(-1)).toBe(true);
+      });
+    });
+  });
+
+  describe('updateFlow', () => {
+    let container;
+
+    beforeEach(() => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      PowerFlow.init(container);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    test('sets inactive state when power is 0', () => {
+      PowerFlow.updateFlow('solar-home', { power: 0, flowType: 'solar', maxPower: 5000 });
+      var line = container.querySelector('[data-connection="solar-home"]');
+      expect(line.getAttribute('opacity')).toBe('0.1');
+      expect(line.getAttribute('stroke')).toBe('var(--text-tertiary)');
+      expect(line.getAttribute('stroke-width')).toBe('1');
+      expect(line.getAttribute('class')).toBe('flow-line--inactive');
+    });
+
+    test('sets active state with correct color when power > 0', () => {
+      PowerFlow.updateFlow('solar-home', { power: 2500, flowType: 'solar', maxPower: 5000 });
+      var line = container.querySelector('[data-connection="solar-home"]');
+      expect(line.getAttribute('stroke')).toBe('var(--solar)');
+      expect(line.getAttribute('class')).toBe('flow-line--active');
+      expect(parseFloat(line.getAttribute('opacity'))).toBeGreaterThanOrEqual(0.8);
+      expect(parseFloat(line.getAttribute('stroke-width'))).toBeGreaterThan(1);
+    });
+
+    test('sets reverse animation class when power < 0', () => {
+      PowerFlow.updateFlow('grid-home', { power: -1000, flowType: 'grid-export', maxPower: 5000 });
+      var line = container.querySelector('[data-connection="grid-home"]');
+      expect(line.getAttribute('class')).toBe('flow-line--reverse');
+      expect(line.getAttribute('stroke')).toBe('var(--grid-export)');
+    });
+
+    test('scales stroke-width proportionally', () => {
+      PowerFlow.updateFlow('solar-home', { power: 5000, flowType: 'solar', maxPower: 5000 });
+      var line = container.querySelector('[data-connection="solar-home"]');
+      expect(parseFloat(line.getAttribute('stroke-width'))).toBe(6);
+    });
+
+    test('does not throw when connection does not exist', () => {
+      expect(() => {
+        PowerFlow.updateFlow('nonexistent', { power: 1000, flowType: 'solar', maxPower: 5000 });
+      }).not.toThrow();
+    });
+
+    test('opacity ranges from 0.8 to 1.0 for active flows', () => {
+      // Small power -> opacity near 0.8
+      PowerFlow.updateFlow('solar-home', { power: 1, flowType: 'solar', maxPower: 5000 });
+      var line = container.querySelector('[data-connection="solar-home"]');
+      var lowOpacity = parseFloat(line.getAttribute('opacity'));
+      expect(lowOpacity).toBeGreaterThanOrEqual(0.8);
+      expect(lowOpacity).toBeLessThanOrEqual(1.0);
+
+      // Max power -> opacity 1.0
+      PowerFlow.updateFlow('solar-home', { power: 5000, flowType: 'solar', maxPower: 5000 });
+      var highOpacity = parseFloat(line.getAttribute('opacity'));
+      expect(highOpacity).toBeCloseTo(1.0, 1);
     });
   });
 });

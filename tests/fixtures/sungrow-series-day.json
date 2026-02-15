@@ -1,0 +1,16 @@
+{
+  "device_id": "inverter-01",
+  "frame": "day",
+  "series": [
+    {
+      "bucket": "2026-02-15T08:00:00",
+      "avg_pv_power_w": 1200.5,
+      "max_pv_power_w": 2100.0,
+      "avg_battery_power_w": -500.0,
+      "avg_battery_soc_pct": 72.3,
+      "avg_load_power_w": 1100.0,
+      "avg_export_power_w": 600.5,
+      "sample_count": 60
+    }
+  ]
+}

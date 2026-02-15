@@ -1,0 +1,10 @@
+{
+  "device_id": "p1-meter-01",
+  "month": "2026-02",
+  "peaks": [
+    { "ts": "2026-02-03T18:15:00", "avg_power_w": 4200 },
+    { "ts": "2026-02-12T17:45:00", "avg_power_w": 5100 }
+  ],
+  "monthly_peak_w": 5100,
+  "monthly_peak_ts": "2026-02-12T17:45:00"
+}

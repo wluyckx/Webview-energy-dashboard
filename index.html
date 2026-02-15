@@ -447,6 +447,33 @@
           gap: var(--space-4);
         }
       }
+
+      /* ============================================================
+         Power Flow Line Animations (STORY-006)
+         ============================================================ */
+      @keyframes flow-forward {
+        to {
+          stroke-dashoffset: -20;
+        }
+      }
+
+      @keyframes flow-reverse {
+        to {
+          stroke-dashoffset: 20;
+        }
+      }
+
+      .flow-line--active {
+        animation: flow-forward 3s linear infinite;
+      }
+
+      .flow-line--reverse {
+        animation: flow-reverse 3s linear infinite;
+      }
+
+      .flow-line--inactive {
+        animation: none;
+      }
     </style>
   </head>
   <body>
