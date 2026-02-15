@@ -1,0 +1,14 @@
+node_modules/
+src/
+tests/
+docs/
+.git/
+.claude/
+coverage/
+.eslintrc.json
+.prettierrc
+jest.config.js
+CLAUDE.md
+SKILL.md
+Architecture.md
+*.md

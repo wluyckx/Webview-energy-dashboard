@@ -3,6 +3,9 @@
  * Initializes the dashboard and coordinates component lifecycle.
  *
  * CHANGELOG:
+ * - 2026-02-15: Fix XSS in showConfigError — use textContent/DOM nodes instead of innerHTML (BUGFIX)
+ * - 2026-02-15: Fix status bar update targeting .status-bar__label to preserve dot element (BUGFIX)
+ * - 2026-02-15: Gate all polling on per-endpoint tokens or mock mode (BUGFIX)
  * - 2026-02-15: Add status bar component with connectivity indicators (STORY-016)
  * - 2026-02-15: Add Flutter WebView bridge integration (STORY-014)
  * - 2026-02-15: Add 60-second energy balance polling (STORY-010)
@@ -38,16 +41,26 @@ const App = (() => {
     var panel = document.createElement('section');
     panel.className = 'dashboard-section config-error';
     panel.setAttribute('role', 'alert');
-    panel.innerHTML =
-      '<h2 class="dashboard-section__title">Configuration Error</h2>' +
-      '<p class="dashboard-section__placeholder">The dashboard could not start due to missing or invalid configuration:</p>' +
-      '<ul class="config-error__list">' +
-      errors
-        .map(function (e) {
-          return '<li>' + e + '</li>';
-        })
-        .join('') +
-      '</ul>';
+
+    var heading = document.createElement('h2');
+    heading.className = 'dashboard-section__title';
+    heading.textContent = 'Configuration Error';
+    panel.appendChild(heading);
+
+    var desc = document.createElement('p');
+    desc.className = 'dashboard-section__placeholder';
+    desc.textContent =
+      'The dashboard could not start due to missing or invalid configuration:';
+    panel.appendChild(desc);
+
+    var list = document.createElement('ul');
+    list.className = 'config-error__list';
+    errors.forEach(function (e) {
+      var li = document.createElement('li');
+      li.textContent = e;
+      list.appendChild(li);
+    });
+    panel.appendChild(list);
 
     // Insert at top of dashboard, hide other sections
     dashboard.insertBefore(panel, dashboard.firstChild);
@@ -101,7 +114,7 @@ const App = (() => {
    */
   function updateStatusBar() {
     var dot = document.querySelector('.status-bar__dot');
-    var label = document.querySelector('.status-bar__placeholder');
+    var label = document.querySelector('.status-bar__label');
     if (!dot || !label) {
       return;
     }
@@ -149,8 +162,8 @@ const App = (() => {
       return Promise.resolve();
     }
 
-    // Skip authenticated fetches until tokens are delivered (HC-002)
-    if (!config.p1_token && !config.sungrow_token && !config.mock) {
+    // Skip authenticated fetches until all required tokens are delivered (HC-002)
+    if (!config.mock && (!config.p1_token || !config.sungrow_token)) {
       return Promise.resolve();
     }
 
@@ -205,6 +218,11 @@ const App = (() => {
       return Promise.resolve();
     }
 
+    // Skip until Sungrow token is delivered or mock mode active (HC-002)
+    if (!config.mock && !config.sungrow_token) {
+      return Promise.resolve();
+    }
+
     return ApiClient.fetchSungrowSeries(config, 'day').then(function (data) {
       if (data) {
         EnergyBalance.update(data);
@@ -234,6 +252,11 @@ const App = (() => {
   function pollTimelineChart() {
     var config = Config.getConfig();
     if (!config || !timelineChart) {
+      return Promise.resolve();
+    }
+
+    // Skip until Sungrow token is delivered or mock mode active (HC-002)
+    if (!config.mock && !config.sungrow_token) {
       return Promise.resolve();
     }
 

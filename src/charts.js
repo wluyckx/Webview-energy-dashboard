@@ -12,6 +12,8 @@
  * STORY-011: Monthly Overview Bar Chart
  *
  * CHANGELOG:
+ * - 2026-02-15: Add scriptable segment colors for battery charge/discharge and grid import/export (BUGFIX)
+ * - 2026-02-15: Add CDN fallback placeholder when Chart.js unavailable (BUGFIX)
  * - 2026-02-15: Initial implementation (STORY-009)
  * - 2026-02-15: Add monthly overview bar chart (STORY-011)
  */
@@ -169,10 +171,31 @@ var Charts = (function () {
    * @param {string} canvasId - The DOM id of the <canvas> element.
    * @returns {Chart|null} The Chart.js instance or null.
    */
+  /**
+   * Show a fallback placeholder when Chart.js CDN is unavailable.
+   *
+   * @param {string} canvasId - The DOM id of the <canvas> element to replace.
+   */
+  function showCdnFallback(canvasId) {
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      return;
+    }
+    var container = canvas.parentElement;
+    if (!container) {
+      return;
+    }
+    var placeholder = document.createElement('p');
+    placeholder.className = 'dashboard-section__placeholder';
+    placeholder.textContent = 'Charts unavailable \u2014 requires internet connection';
+    container.replaceChild(placeholder, canvas);
+  }
+
   function initTimelineChart(canvasId) {
     // Guard: Chart.js must be loaded
     if (typeof Chart === 'undefined') {
       console.warn('Charts: Chart.js is not loaded. Cannot initialize timeline chart.');
+      showCdnFallback(canvasId);
       return null;
     }
 
@@ -186,8 +209,6 @@ var Charts = (function () {
 
     // Build gradient fills
     var solarGradient = createFillGradient(ctx, canvas, COLORS.solar, 0.3);
-    var batteryGradient = createFillGradient(ctx, canvas, COLORS.batteryCharge, 0.2);
-    var gridGradient = createFillGradient(ctx, canvas, COLORS.gridExport, 0.2);
 
     var chart = new Chart(ctx, {
       type: 'line',
@@ -209,7 +230,19 @@ var Charts = (function () {
             label: 'Battery',
             data: [],
             borderColor: COLORS.batteryCharge,
-            backgroundColor: batteryGradient,
+            backgroundColor: hexToRgba(COLORS.batteryCharge, 0.2),
+            segment: {
+              borderColor: function (ctx) {
+                return ctx.p1.parsed.y >= 0
+                  ? COLORS.batteryCharge
+                  : COLORS.batteryDischarge;
+              },
+              backgroundColor: function (ctx) {
+                return ctx.p1.parsed.y >= 0
+                  ? hexToRgba(COLORS.batteryCharge, 0.2)
+                  : hexToRgba(COLORS.batteryDischarge, 0.2);
+              },
+            },
             fill: 'origin',
             tension: 0.4,
             borderWidth: 2,
@@ -220,7 +253,19 @@ var Charts = (function () {
             label: 'Grid',
             data: [],
             borderColor: COLORS.gridExport,
-            backgroundColor: gridGradient,
+            backgroundColor: hexToRgba(COLORS.gridExport, 0.2),
+            segment: {
+              borderColor: function (ctx) {
+                return ctx.p1.parsed.y >= 0
+                  ? COLORS.gridExport
+                  : COLORS.gridImport;
+              },
+              backgroundColor: function (ctx) {
+                return ctx.p1.parsed.y >= 0
+                  ? hexToRgba(COLORS.gridExport, 0.2)
+                  : hexToRgba(COLORS.gridImport, 0.2);
+              },
+            },
             fill: 'origin',
             tension: 0.4,
             borderWidth: 2,
@@ -433,6 +478,7 @@ var Charts = (function () {
     // Guard: Chart.js must be loaded
     if (typeof Chart === 'undefined') {
       console.warn('Charts: Chart.js is not loaded. Cannot initialize monthly chart.');
+      showCdnFallback(canvasId);
       return null;
     }
 

@@ -400,6 +400,7 @@ describe('updateStatusBar offline banner (STORY-013)', () => {
       '<div id="offline-banner" hidden></div>' +
       '<div class="status-bar__placeholder">' +
       '<span class="status-bar__dot"></span>' +
+      '<span class="status-bar__label">Waiting for connection...</span>' +
       '</div>';
     global.ApiClient.isOffline.mockReset();
     global.ApiClient.isStale.mockReset();
