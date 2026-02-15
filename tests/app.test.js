@@ -2,8 +2,10 @@
  * Tests for App module — WebView bridge functions (src/app.js).
  *
  * STORY-014: Flutter WebView Integration
+ * STORY-016: Status Bar Component
  *
  * CHANGELOG:
+ * - 2026-02-15: Add tests for getStatusIndicator and formatLastUpdate (STORY-016)
  * - 2026-02-15: Initial test suite for handleMessage and dispatchToFlutter (STORY-014)
  */
 
@@ -33,6 +35,9 @@ beforeAll(() => {
     fetchSungrowRealtime: jest.fn(() => Promise.resolve(null)),
     fetchP1Capacity: jest.fn(() => Promise.resolve(null)),
     fetchSungrowSeries: jest.fn(() => Promise.resolve(null)),
+    isStale: jest.fn(() => false),
+    isOffline: jest.fn(() => false),
+    getLastSuccessTime: jest.fn(() => 0),
   };
   global.KpiStrip = {
     updateAll: jest.fn(),
@@ -284,5 +289,93 @@ describe('dispatchToFlutter (STORY-014)', () => {
     expect(() => {
       App.dispatchToFlutter('dashboardReady', { version: '1.0' });
     }).not.toThrow();
+  });
+});
+
+// ===========================================================================
+// getStatusIndicator (STORY-016)
+// ===========================================================================
+describe('getStatusIndicator (STORY-016)', () => {
+  beforeEach(() => {
+    global.ApiClient.isOffline.mockReset();
+    global.ApiClient.isStale.mockReset();
+    global.ApiClient.isOffline.mockReturnValue(false);
+    global.ApiClient.isStale.mockReturnValue(false);
+  });
+
+  test('returns "live" when ApiClient is undefined', () => {
+    const savedApiClient = global.ApiClient;
+    delete global.ApiClient;
+
+    const result = App.getStatusIndicator();
+
+    expect(result).toEqual({ status: 'live', color: '#00B894', label: 'Live' });
+
+    global.ApiClient = savedApiClient;
+  });
+
+  test('returns "offline" when ApiClient.isOffline() is true', () => {
+    global.ApiClient.isOffline.mockReturnValue(true);
+
+    const result = App.getStatusIndicator();
+
+    expect(result).toEqual({ status: 'offline', color: '#E17055', label: 'Offline' });
+  });
+
+  test('returns "delayed" when at least one source is stale', () => {
+    global.ApiClient.isStale.mockImplementation((source) => source === 'p1');
+
+    const result = App.getStatusIndicator();
+
+    expect(result).toEqual({ status: 'delayed', color: '#FDCB6E', label: 'Delayed' });
+  });
+
+  test('returns "live" when both sources are fresh', () => {
+    global.ApiClient.isOffline.mockReturnValue(false);
+    global.ApiClient.isStale.mockReturnValue(false);
+
+    const result = App.getStatusIndicator();
+
+    expect(result).toEqual({ status: 'live', color: '#00B894', label: 'Live' });
+  });
+
+  test('offline takes priority over delayed', () => {
+    global.ApiClient.isOffline.mockReturnValue(true);
+    global.ApiClient.isStale.mockReturnValue(true);
+
+    const result = App.getStatusIndicator();
+
+    expect(result).toEqual({ status: 'offline', color: '#E17055', label: 'Offline' });
+  });
+});
+
+// ===========================================================================
+// formatLastUpdate (STORY-016)
+// ===========================================================================
+describe('formatLastUpdate (STORY-016)', () => {
+  test('returns empty string for 0', () => {
+    expect(App.formatLastUpdate(0)).toBe('');
+  });
+
+  test('returns empty string for null', () => {
+    expect(App.formatLastUpdate(null)).toBe('');
+  });
+
+  test('formats timestamp as HH:MM:SS', () => {
+    // Create a known timestamp: 14:30:45
+    const d = new Date();
+    d.setHours(14, 30, 45, 0);
+    const result = App.formatLastUpdate(d.getTime());
+
+    expect(result).toBe('14:30:45');
+  });
+
+  test('pads single-digit hours/minutes/seconds with zero', () => {
+    // Create a known timestamp: 03:05:09
+    const d = new Date();
+    d.setHours(3, 5, 9, 0);
+    const result = App.formatLastUpdate(d.getTime());
+
+    expect(result).toBe('03:05:09');
   });
 });

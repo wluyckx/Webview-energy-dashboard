@@ -3,6 +3,7 @@
  * Initializes the dashboard and coordinates component lifecycle.
  *
  * CHANGELOG:
+ * - 2026-02-15: Add status bar component with connectivity indicators (STORY-016)
  * - 2026-02-15: Add Flutter WebView bridge integration (STORY-014)
  * - 2026-02-15: Add 60-second energy balance polling (STORY-010)
  * - 2026-02-15: Integrate KpiStrip with polling and capacity fetch (STORY-008)
@@ -47,6 +48,79 @@ const App = (() => {
   }
 
   /**
+   * Determine the current dashboard connectivity status based on
+   * ApiClient staleness and offline state (STORY-016).
+   *
+   * @returns {{ status: string, color: string, label: string }}
+   */
+  function getStatusIndicator() {
+    if (typeof ApiClient === 'undefined') {
+      return { status: 'live', color: '#00B894', label: 'Live' };
+    }
+
+    if (ApiClient.isOffline()) {
+      return { status: 'offline', color: '#E17055', label: 'Offline' };
+    }
+
+    var p1Stale = ApiClient.isStale('p1');
+    var sungrowStale = ApiClient.isStale('sungrow');
+
+    if (p1Stale || sungrowStale) {
+      return { status: 'delayed', color: '#FDCB6E', label: 'Delayed' };
+    }
+
+    return { status: 'live', color: '#00B894', label: 'Live' };
+  }
+
+  /**
+   * Format a timestamp as "HH:MM:SS" for the status bar display (STORY-016).
+   *
+   * @param {number} timestamp - Unix-epoch millisecond timestamp.
+   * @returns {string} Formatted time string, or empty string if no timestamp.
+   */
+  function formatLastUpdate(timestamp) {
+    if (!timestamp || timestamp === 0) {
+      return '';
+    }
+    var d = new Date(timestamp);
+    var h = String(d.getHours()).padStart(2, '0');
+    var m = String(d.getMinutes()).padStart(2, '0');
+    var s = String(d.getSeconds()).padStart(2, '0');
+    return h + ':' + m + ':' + s;
+  }
+
+  /**
+   * Update the DOM status bar with current connectivity state and
+   * last-update timestamp (STORY-016).
+   */
+  function updateStatusBar() {
+    var dot = document.querySelector('.status-bar__dot');
+    var label = document.querySelector('.status-bar__placeholder');
+    if (!dot || !label) {
+      return;
+    }
+
+    var indicator = getStatusIndicator();
+    dot.style.backgroundColor = indicator.color;
+
+    // Build label text: "Live    Last update: HH:MM:SS"
+    var text = indicator.label;
+
+    // Find the most recent success time
+    if (typeof ApiClient !== 'undefined') {
+      var p1Time = ApiClient.getLastSuccessTime('p1');
+      var sgTime = ApiClient.getLastSuccessTime('sungrow');
+      var lastTime = Math.max(p1Time, sgTime);
+      var formatted = formatLastUpdate(lastTime);
+      if (formatted) {
+        text += '    Last update: ' + formatted;
+      }
+    }
+
+    label.textContent = text;
+  }
+
+  /**
    * Fetch P1 and Sungrow realtime data in parallel, compute flows,
    * and update the power flow diagram. Handles null data gracefully:
    * if both APIs fail (return null), no update is performed.
@@ -79,6 +153,9 @@ const App = (() => {
       if (typeof KpiStrip !== 'undefined') {
         KpiStrip.updateAll(p1Data, sungrowData, capacityData);
       }
+
+      // Update status bar connectivity indicator (STORY-016)
+      updateStatusBar();
     });
   }
 
@@ -278,6 +355,22 @@ const App = (() => {
       }
     }
 
+    // Initialize monthly overview chart — loaded once, no polling (STORY-011)
+    if (
+      typeof Charts !== 'undefined' &&
+      typeof Config !== 'undefined' &&
+      typeof ApiClient !== 'undefined'
+    ) {
+      var monthlyChart = Charts.initMonthlyChart('monthly-chart');
+      if (monthlyChart) {
+        ApiClient.fetchSungrowSeries(Config.getConfig(), 'month').then(function (data) {
+          if (data) {
+            Charts.updateMonthlyChart(monthlyChart, data);
+          }
+        });
+      }
+    }
+
     // Notify Flutter that the dashboard is ready (STORY-014)
     dispatchToFlutter('dashboardReady', { version: '1.0' });
   }
@@ -289,6 +382,9 @@ const App = (() => {
     startEnergyBalancePolling: startEnergyBalancePolling,
     handleMessage: handleMessage,
     dispatchToFlutter: dispatchToFlutter,
+    getStatusIndicator: getStatusIndicator,
+    formatLastUpdate: formatLastUpdate,
+    updateStatusBar: updateStatusBar,
   };
 })();
 

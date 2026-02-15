@@ -1,11 +1,15 @@
 /**
- * Tests for Charts module (STORY-009).
+ * Tests for Charts module (STORY-009, STORY-011).
  *
  * Validates the pure transformSeriesToDatasets function: label formatting,
  * kW conversion, dataset count, color assignments, and empty data handling.
  *
+ * Validates transformMonthlyToBarData: day-of-month labels, daily kWh
+ * conversion, dataset count, color assignments, and empty data handling.
+ *
  * CHANGELOG:
  * - 2026-02-15: Initial tests (STORY-009)
+ * - 2026-02-15: Add monthly bar chart tests (STORY-011)
  */
 
 var Charts = require('../src/charts.js');
@@ -168,6 +172,106 @@ describe('Charts', function () {
       expect(Charts.COLORS.gridImport).toBe('#e17055');
       expect(Charts.COLORS.gridExport).toBe('#00b894');
       expect(Charts.COLORS.home).toBe('#DFE6E9');
+    });
+  });
+
+  describe('transformMonthlyToBarData()', function () {
+    var monthlyFixture = {
+      device_id: 'inverter-01',
+      frame: 'month',
+      series: [
+        {
+          bucket: '2026-02-01T00:00:00',
+          avg_pv_power_w: 520.8,
+          avg_load_power_w: 345.0,
+          avg_battery_power_w: 50.0,
+          avg_export_power_w: 125.8,
+          sample_count: 1440,
+        },
+        {
+          bucket: '2026-02-02T00:00:00',
+          avg_pv_power_w: 633.3,
+          avg_load_power_w: 412.5,
+          avg_battery_power_w: -80.0,
+          avg_export_power_w: 140.8,
+          sample_count: 1440,
+        },
+      ],
+    };
+
+    test('labels are day-of-month numbers', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      expect(result.labels).toEqual([1, 2]);
+    });
+
+    test('production kWh = avg_pv_power_w * 24 / 1000', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      var production = result.datasets.find(function (ds) {
+        return ds.label === 'Production';
+      });
+      // 520.8 * 24 / 1000 = 12.4992
+      expect(production.data[0]).toBeCloseTo(12.4992, 4);
+      // 633.3 * 24 / 1000 = 15.1992
+      expect(production.data[1]).toBeCloseTo(15.1992, 4);
+    });
+
+    test('consumption kWh = avg_load_power_w * 24 / 1000', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      var consumption = result.datasets.find(function (ds) {
+        return ds.label === 'Consumption';
+      });
+      // 345.0 * 24 / 1000 = 8.28
+      expect(consumption.data[0]).toBeCloseTo(8.28, 4);
+      // 412.5 * 24 / 1000 = 9.9
+      expect(consumption.data[1]).toBeCloseTo(9.9, 4);
+    });
+
+    test('returns 2 datasets (Production and Consumption)', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      expect(result.datasets).toHaveLength(2);
+      expect(result.datasets[0].label).toBe('Production');
+      expect(result.datasets[1].label).toBe('Consumption');
+    });
+
+    test('Production has correct color (#F6B93B)', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      var production = result.datasets.find(function (ds) {
+        return ds.label === 'Production';
+      });
+      expect(production.backgroundColor).toBe('#F6B93B');
+    });
+
+    test('Consumption has correct color (#DFE6E9)', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      var consumption = result.datasets.find(function (ds) {
+        return ds.label === 'Consumption';
+      });
+      expect(consumption.backgroundColor).toBe('#DFE6E9');
+    });
+
+    test('empty series returns empty labels and datasets with empty data', function () {
+      var emptyData = {
+        device_id: 'inverter-01',
+        frame: 'month',
+        series: [],
+      };
+      var result = Charts.transformMonthlyToBarData(emptyData);
+      expect(result.labels).toEqual([]);
+      expect(result.datasets).toHaveLength(2);
+      result.datasets.forEach(function (ds) {
+        expect(ds.data).toEqual([]);
+      });
+    });
+
+    test('multiple daily buckets produce correct day numbers and kWh values', function () {
+      var result = Charts.transformMonthlyToBarData(monthlyFixture);
+      expect(result.labels).toEqual([1, 2]);
+      // Production: [12.4992, 15.1992]
+      expect(result.datasets[0].data[0]).toBeCloseTo(12.4992, 4);
+      expect(result.datasets[0].data[1]).toBeCloseTo(15.1992, 4);
+      // Consumption: [8.28, 9.9]
+      expect(result.datasets[1].data[0]).toBeCloseTo(8.28, 4);
+      expect(result.datasets[1].data[1]).toBeCloseTo(9.9, 4);
     });
   });
 });

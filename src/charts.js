@@ -5,10 +5,15 @@
  * data: solar production, battery charge/discharge, grid import/export,
  * and home consumption. Data sourced from Sungrow /v1/series?frame=day.
  *
+ * Also renders a monthly overview grouped bar chart showing daily production
+ * and consumption in kWh. Data sourced from Sungrow /v1/series?frame=month.
+ *
  * STORY-009: Power Timeline Chart
+ * STORY-011: Monthly Overview Bar Chart
  *
  * CHANGELOG:
  * - 2026-02-15: Initial implementation (STORY-009)
+ * - 2026-02-15: Add monthly overview bar chart (STORY-011)
  */
 
 // eslint-disable-next-line no-unused-vars
@@ -371,6 +376,220 @@ var Charts = (function () {
   }
 
   // ---------------------------------------------------------------------------
+  // Monthly overview bar chart (STORY-011)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Transform Sungrow monthly series data into Chart.js bar dataset format.
+   *
+   * Each bucket represents a 24-hour daily average. To convert average power
+   * (W) to daily energy (kWh): avg_power_w * 24 / 1000.
+   *
+   * @param {Object} seriesData - Sungrow series month response with .series array.
+   * @returns {{ labels: number[], datasets: Object[] }} Chart.js-compatible bar data.
+   */
+  function transformMonthlyToBarData(seriesData) {
+    var buckets = seriesData.series;
+    var labels = [];
+    var productionData = [];
+    var consumptionData = [];
+
+    buckets.forEach(function (bucket) {
+      labels.push(new Date(bucket.bucket).getDate());
+      productionData.push((bucket.avg_pv_power_w * 24) / 1000);
+      consumptionData.push((bucket.avg_load_power_w * 24) / 1000);
+    });
+
+    return {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Production',
+          data: productionData,
+          backgroundColor: COLORS.solar,
+          borderRadius: 4,
+        },
+        {
+          label: 'Consumption',
+          data: consumptionData,
+          backgroundColor: COLORS.home,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }
+
+  /**
+   * Create and return a Chart.js bar chart instance for the monthly overview.
+   *
+   * Displays grouped bars for daily production and consumption in kWh.
+   * Dark theme styling matches the timeline chart (STORY-009).
+   * Returns null if the canvas element is not found or Chart.js is not loaded.
+   *
+   * @param {string} canvasId - The DOM id of the <canvas> element.
+   * @returns {Chart|null} The Chart.js instance or null.
+   */
+  function initMonthlyChart(canvasId) {
+    // Guard: Chart.js must be loaded
+    if (typeof Chart === 'undefined') {
+      console.warn('Charts: Chart.js is not loaded. Cannot initialize monthly chart.');
+      return null;
+    }
+
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.warn('Charts: Canvas element "' + canvasId + '" not found.');
+      return null;
+    }
+
+    var ctx = canvas.getContext('2d');
+
+    var chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Production',
+            data: [],
+            backgroundColor: COLORS.solar,
+            borderRadius: 4,
+          },
+          {
+            label: 'Consumption',
+            data: [],
+            backgroundColor: COLORS.home,
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: COLORS.textSecondary,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 16,
+              font: {
+                size: 12,
+              },
+            },
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: COLORS.bgSurface,
+            titleColor: COLORS.textSecondary,
+            bodyColor: '#e8ecf1',
+            borderColor: COLORS.borderSubtle,
+            borderWidth: 1,
+            padding: 12,
+            usePointStyle: true,
+            callbacks: {
+              label: function (context) {
+                var label = context.dataset.label || '';
+                var value = context.parsed.y;
+                return label + ': ' + value.toFixed(2) + ' kWh';
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: COLORS.textTertiary,
+              font: {
+                size: 11,
+              },
+              maxRotation: 0,
+            },
+            title: {
+              display: true,
+              text: 'Day of Month',
+              color: COLORS.textSecondary,
+              font: {
+                size: 12,
+              },
+            },
+            grid: {
+              color: COLORS.borderSubtle,
+              borderDash: [4, 4],
+              drawBorder: false,
+            },
+            border: {
+              display: false,
+            },
+          },
+          y: {
+            ticks: {
+              color: COLORS.textTertiary,
+              font: {
+                size: 11,
+              },
+              callback: function (value) {
+                return value + ' kWh';
+              },
+            },
+            title: {
+              display: true,
+              text: 'Energy (kWh)',
+              color: COLORS.textSecondary,
+              font: {
+                size: 12,
+              },
+            },
+            grid: {
+              color: COLORS.borderSubtle,
+              borderDash: [4, 4],
+              drawBorder: false,
+            },
+            border: {
+              display: false,
+            },
+          },
+        },
+      },
+    });
+
+    return chart;
+  }
+
+  /**
+   * Update an existing monthly bar chart with new series data.
+   *
+   * Calls transformMonthlyToBarData to convert the raw data, then applies
+   * the labels and data arrays to each dataset (preserving styling set
+   * during init) and triggers chart.update().
+   *
+   * @param {Chart} chart - The Chart.js instance from initMonthlyChart.
+   * @param {Object} seriesData - Sungrow series month response with .series array.
+   */
+  function updateMonthlyChart(chart, seriesData) {
+    if (!chart || !seriesData || !seriesData.series) {
+      return;
+    }
+
+    var transformed = transformMonthlyToBarData(seriesData);
+
+    chart.data.labels = transformed.labels;
+
+    chart.data.datasets.forEach(function (dataset, index) {
+      if (transformed.datasets[index]) {
+        dataset.data = transformed.datasets[index].data;
+      }
+    });
+
+    chart.update();
+  }
+
+  // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
   return {
@@ -378,6 +597,9 @@ var Charts = (function () {
     transformSeriesToDatasets: transformSeriesToDatasets,
     initTimelineChart: initTimelineChart,
     updateTimelineChart: updateTimelineChart,
+    transformMonthlyToBarData: transformMonthlyToBarData,
+    initMonthlyChart: initMonthlyChart,
+    updateMonthlyChart: updateMonthlyChart,
   };
 })();
 
