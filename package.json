@@ -1,0 +1,21 @@
+{
+  "name": "energy-dashboard",
+  "version": "0.1.0",
+  "description": "Residential energy monitoring dashboard for Flutter WebView",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "lint": "eslint src/",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist/ coverage/"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.2.0"
+  }
+}

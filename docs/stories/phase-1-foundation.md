@@ -14,7 +14,7 @@
 
 ## Stories
 
-<story id="STORY-001" status="pending" complexity="M" tdd="recommended">
+<story id="STORY-001" status="done" complexity="M" tdd="recommended">
   <title>Project Scaffolding and HTML Skeleton</title>
   <dependencies>None</dependencies>
   <description>
@@ -63,7 +63,7 @@
 
 ---
 
-<story id="STORY-002" status="pending" complexity="S" tdd="required">
+<story id="STORY-002" status="in_progress" complexity="S" tdd="required">
   <title>URL Parameter Configuration Module</title>
   <dependencies>STORY-001</dependencies>
   <description>

@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Energy Dashboard</title>
+
+    <!-- Typography: JetBrains Mono (data/numbers) + DM Sans (body/labels) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ============================================================
+         CSS Custom Properties — FE_design.md Token System
+         Dark mode only (ADR-004, HC-004)
+         ============================================================ */
+      :root {
+        /* Background layers */
+        --bg-base: #0a0e14;
+        --bg-surface: #111820;
+        --bg-elevated: #1a2230;
+        --bg-subtle: #0d1219;
+
+        /* Text */
+        --text-primary: #e8ecf1;
+        --text-secondary: #8899aa;
+        --text-tertiary: #4a5568;
+
+        /* Energy flow colors */
+        --solar: #f6b93b;
+        --solar-glow: #f6b93b33;
+        --battery-charge: #6c5ce7;
+        --battery-discharge: #a29bfe;
+        --grid-import: #e17055;
+        --grid-export: #00b894;
+        --home: #dfe6e9;
+
+        /* Status */
+        --success: #00b894;
+        --warning: #fdcb6e;
+        --danger: #e17055;
+        --accent: #74b9ff;
+
+        /* Borders */
+        --border-subtle: #1e2a3a;
+        --border-focus: #74b9ff;
+
+        /* Typography */
+        --font-data: 'JetBrains Mono', monospace;
+        --font-body: 'DM Sans', sans-serif;
+
+        /* Spacing (8px base grid) */
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 24px;
+        --space-6: 32px;
+        --space-7: 48px;
+        --space-8: 64px;
+      }
+
+      /* ============================================================
+         Reset & Base Styles
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        font-size: 16px;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        font-family: var(--font-body);
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text-primary);
+        background-color: var(--bg-base);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* ============================================================
+         Accessibility: Reduced Motion
+         ============================================================ */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+
+      /* ============================================================
+         Focus Styles (Accessibility)
+         ============================================================ */
+      :focus-visible {
+        outline: 2px solid var(--border-focus);
+        outline-offset: 2px;
+      }
+
+      /* ============================================================
+         Dashboard Layout
+         ============================================================ */
+      .dashboard {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+        padding-bottom: var(--space-7);
+      }
+
+      /* ============================================================
+         Status Bar
+         ============================================================ */
+      .status-bar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background-color: var(--bg-surface);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: var(--space-2) var(--space-4);
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        color: var(--text-tertiary);
+        font-family: var(--font-body);
+      }
+
+      .status-bar__placeholder {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+      }
+
+      .status-bar__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--text-tertiary);
+      }
+
+      /* ============================================================
+         Dashboard Sections (shared)
+         ============================================================ */
+      .dashboard-section {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: var(--space-5);
+        min-height: 80px;
+      }
+
+      .dashboard-section__title {
+        font-family: var(--font-body);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-3);
+      }
+
+      .dashboard-section__placeholder {
+        font-family: var(--font-body);
+        font-size: 14px;
+        color: var(--text-tertiary);
+      }
+
+      /* ============================================================
+         Section A: Power Flow Diagram (Hero)
+         ============================================================ */
+      .section-power-flow {
+        min-height: 60vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .section-power-flow .dashboard-section__title {
+        font-size: 18px;
+      }
+
+      .section-power-flow__hero-value {
+        font-family: var(--font-data);
+        font-size: 40px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-top: var(--space-4);
+      }
+
+      .section-power-flow__hero-unit {
+        font-family: var(--font-body);
+        font-size: 24px;
+        font-weight: 400;
+        color: var(--text-secondary);
+      }
+
+      #power-flow-container {
+        width: 100%;
+        max-width: 500px;
+        margin: var(--space-4) auto;
+      }
+
+      .power-flow-svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* ============================================================
+         Section B: KPI Strip
+         ============================================================ */
+      .section-kpi-strip {
+        padding: var(--space-4);
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-3);
+      }
+
+      .kpi-card {
+        background-color: var(--bg-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: var(--space-4);
+        min-height: 80px;
+        border-left: 3px solid var(--text-tertiary);
+      }
+
+      .kpi-card__label {
+        font-family: var(--font-body);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-1);
+      }
+
+      .kpi-card__value {
+        font-family: var(--font-data);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .kpi-card__unit {
+        font-family: var(--font-body);
+        font-size: 16px;
+        font-weight: 400;
+        color: var(--text-secondary);
+      }
+
+      .kpi-card__subtext {
+        font-family: var(--font-body);
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--text-tertiary);
+        margin-top: var(--space-1);
+      }
+
+      /* KPI accent colors */
+      .kpi-card--grid {
+        border-left-color: var(--grid-import);
+      }
+
+      .kpi-card--battery {
+        border-left-color: var(--battery-charge);
+      }
+
+      .kpi-card--solar {
+        border-left-color: var(--solar);
+      }
+
+      .kpi-card--peak {
+        border-left-color: var(--warning);
+      }
+
+      /* ============================================================
+         Section E: Cost Dashboard (Stub)
+         ============================================================ */
+      .section-cost {
+        border-style: dashed;
+        background-color: var(--bg-subtle);
+      }
+
+      .section-cost__cta {
+        display: inline-block;
+        margin-top: var(--space-4);
+        padding: var(--space-2) var(--space-4);
+        border: 1px solid var(--accent);
+        border-radius: 8px;
+        color: var(--accent);
+        font-family: var(--font-body);
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        background: transparent;
+        cursor: pointer;
+        min-width: 44px;
+        min-height: 44px;
+        line-height: 28px;
+      }
+
+      .section-cost__cta:hover {
+        background-color: var(--bg-elevated);
+      }
+
+      /* ============================================================
+         Responsive Breakpoints (FE_design.md)
+         ============================================================ */
+
+      /* < 380px: Single column, compact */
+      @media (max-width: 379px) {
+        .dashboard {
+          padding: 0 var(--space-3);
+          gap: var(--space-5);
+        }
+
+        .dashboard-section {
+          padding: var(--space-4);
+        }
+
+        .section-power-flow {
+          min-height: 55vh;
+        }
+
+        .section-power-flow__hero-value {
+          font-size: 36px;
+        }
+
+        .kpi-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-2);
+        }
+
+        .kpi-card__value {
+          font-size: 24px;
+        }
+      }
+
+      /* 380-414px: Single column (default mobile — base styles apply) */
+
+      /* 415-767px: Single column, spacious */
+      @media (min-width: 415px) and (max-width: 767px) {
+        .dashboard {
+          gap: var(--space-7);
+        }
+
+        .section-power-flow {
+          min-height: 65vh;
+        }
+
+        .section-power-flow__hero-value {
+          font-size: 44px;
+        }
+
+        .kpi-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      /* 768-1023px: Two-column below flow */
+      @media (min-width: 768px) and (max-width: 1023px) {
+        .dashboard {
+          gap: var(--space-7);
+        }
+
+        .section-power-flow {
+          min-height: 50vh;
+        }
+
+        .section-power-flow__hero-value {
+          font-size: 46px;
+        }
+
+        .kpi-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-4);
+        }
+      }
+
+      /* 1024px+: Two-column, centered max-width 1200px */
+      @media (min-width: 1024px) {
+        .dashboard {
+          gap: var(--space-7);
+        }
+
+        .section-power-flow {
+          min-height: 50vh;
+        }
+
+        .section-power-flow__hero-value {
+          font-size: 48px;
+        }
+
+        .kpi-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-4);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Status Bar — Component 7 placeholder (future STORY-016) -->
+    <header class="status-bar" role="banner" aria-label="System status">
+      <div class="status-bar__placeholder">
+        <span class="status-bar__dot" aria-hidden="true"></span>
+        <span>Waiting for connection...</span>
+      </div>
+    </header>
+
+    <main class="dashboard" role="main">
+      <!-- Section A: Power Flow Diagram (Hero) -->
+      <section
+        id="section-a"
+        class="dashboard-section section-power-flow"
+        aria-label="Power Flow Diagram"
+      >
+        <h2 class="dashboard-section__title">Power Flow</h2>
+        <p class="dashboard-section__placeholder">Real-time energy flow diagram will appear here</p>
+        <div id="power-flow-container"></div>
+        <div class="section-power-flow__hero-value" aria-live="polite">
+          <span>--</span>
+          <span class="section-power-flow__hero-unit">kW</span>
+        </div>
+      </section>
+
+      <!-- Section B: KPI Strip (4 cards) -->
+      <section id="section-b" class="dashboard-section section-kpi-strip" aria-label="Key Metrics">
+        <h2 class="dashboard-section__title">Key Metrics</h2>
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-card--grid">
+            <div class="kpi-card__label">Grid</div>
+            <div class="kpi-card__value">--<span class="kpi-card__unit"> W</span></div>
+            <div class="kpi-card__subtext">Waiting for data</div>
+          </div>
+          <div class="kpi-card kpi-card--battery">
+            <div class="kpi-card__label">Battery</div>
+            <div class="kpi-card__value">--%</div>
+            <div class="kpi-card__subtext">Waiting for data</div>
+          </div>
+          <div class="kpi-card kpi-card--solar">
+            <div class="kpi-card__label">Solar Today</div>
+            <div class="kpi-card__value">--<span class="kpi-card__unit"> kWh</span></div>
+            <div class="kpi-card__subtext">Waiting for data</div>
+          </div>
+          <div class="kpi-card kpi-card--peak">
+            <div class="kpi-card__label">Month Peak</div>
+            <div class="kpi-card__value">--<span class="kpi-card__unit"> kW</span></div>
+            <div class="kpi-card__subtext">Waiting for data</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Two-column grid wrapper for tablet/desktop -->
+      <div class="dashboard-grid">
+        <!-- Section C: Energy Balance (today) -->
+        <section id="section-c" class="dashboard-section" aria-label="Energy Balance">
+          <h2 class="dashboard-section__title">Energy Balance</h2>
+          <p class="dashboard-section__placeholder">
+            Today's energy balance breakdown will appear here
+          </p>
+        </section>
+
+        <!-- Section D: Power Timeline (24h) -->
+        <section id="section-d" class="dashboard-section" aria-label="Power Timeline">
+          <h2 class="dashboard-section__title">Power Timeline</h2>
+          <p class="dashboard-section__placeholder">
+            24-hour power timeline chart will appear here
+          </p>
+        </section>
+      </div>
+
+      <!-- Section E: Cost Dashboard (stub) -->
+      <section id="section-e" class="dashboard-section section-cost" aria-label="Cost Dashboard">
+        <h2 class="dashboard-section__title">Cost Tracking</h2>
+        <p class="dashboard-section__placeholder">
+          Connect your energy contract to see real-time costs, projected bills, and savings from
+          solar + battery.
+        </p>
+        <button class="section-cost__cta" type="button">Set up contract</button>
+      </section>
+
+      <!-- Section F: Monthly Overview -->
+      <section id="section-f" class="dashboard-section" aria-label="Monthly Overview">
+        <h2 class="dashboard-section__title">Monthly Overview</h2>
+        <p class="dashboard-section__placeholder">
+          Monthly energy production and consumption chart will appear here
+        </p>
+      </section>
+    </main>
+
+    <script src="src/power-flow.js"></script>
+    <script src="src/app.js"></script>
+  </body>
+</html>
