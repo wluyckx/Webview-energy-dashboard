@@ -45,7 +45,7 @@
 
 <constraints>
   <constraint id="HC-001" ref="Architecture.md">Single-file delivery (< 200 KB, all CSS+JS inline)</constraint>
-  <constraint id="HC-002" ref="Architecture.md">No hardcoded credentials (all config via URL params)</constraint>
+  <constraint id="HC-002" ref="Architecture.md">Secure credential delivery (tokens via WebView postMessage bridge; URL params for non-sensitive config only)</constraint>
   <constraint id="HC-003" ref="Architecture.md">Graceful degradation (never blank screen)</constraint>
   <constraint id="HC-004" ref="Architecture.md">Dark mode only — no light theme (FE_design.md: "Calm Control Room")</constraint>
 </constraints>

@@ -69,7 +69,7 @@
     Create Chart.js-based area/line chart in src/charts.js showing today's hourly power
     data. Multiple datasets:
     - Solar production: var(--solar) (#F6B93B) filled area above baseline
-    - Battery charge/discharge: var(--battery-charge)/(--battery-discharge) area (above=charging, below=discharging)
+    - Battery charge/discharge: var(--battery-charge)/var(--battery-discharge) area (above=charging, below=discharging)
     - Grid import/export: var(--grid-import) below / var(--grid-export) above baseline
     - Home consumption: var(--home) (#DFE6E9) line overlay
 

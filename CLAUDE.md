@@ -540,7 +540,7 @@ rm -rf dist/ coverage/
 **Implications**:
 - All CSS and JS must be inlined during build
 - Separate files during development are fine (src/ directory)
-- Build step (`node scripts/build.js`) produces the final `index.html`
+- Build step (`node scripts/build.js`) produces the final `dist/dashboard.html`
 **Allowed**: Chart.js via CDN, separate files during dev
 **Forbidden**: npm runtime dependencies, build frameworks (webpack, vite), multiple HTML files in production
 

@@ -177,7 +177,7 @@ energy-dashboard/
 ### Flow Characteristics
 - **Reactive**: setInterval polling triggers DOM updates directly (no framework reactivity)
 - **Offline-first**: Last-known values cached in JS variables, displayed with staleness indicators
-- **Configurable**: API URLs, tokens, device IDs, theme, mock mode via URL parameters
+- **Configurable**: API URLs, device IDs, mock mode via URL parameters; tokens via WebView postMessage bridge
 - **Resilient**: Cached data + staleness UI + offline banner + mock fallback
 
 ---
@@ -307,7 +307,7 @@ the key tokens; the FE design doc is the source of truth for details.
 ### Outputs
 
 - **Flutter WebView**: `window.flutter_inappwebview.callHandler('onEvent', data)` for events back to Flutter
-- **postMessage**: `window.postMessage` for token refresh and theme changes from Flutter
+- **postMessage**: `window.postMessage` for bootstrap token delivery and token refresh from Flutter (no theme channel — dark mode only per ADR-004)
 
 ---
 
