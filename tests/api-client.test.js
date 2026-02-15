@@ -5,6 +5,7 @@
  * TDD: Tests written FIRST, before implementation.
  *
  * CHANGELOG:
+ * - 2026-02-15: Add staleness tracking tests (STORY-013)
  * - 2026-02-15: Add mock mode tests (STORY-004)
  * - 2026-02-15: Initial test suite (STORY-003)
  */
@@ -45,9 +46,12 @@ let fetchMock;
 beforeEach(() => {
   fetchMock = jest.fn();
   global.fetch = fetchMock;
-  // Reset the internal cache between tests by calling the reset helper
+  // Reset the internal cache and staleness state between tests
   if (typeof ApiClient._resetCache === 'function') {
     ApiClient._resetCache();
+  }
+  if (typeof ApiClient._resetState === 'function') {
+    ApiClient._resetState();
   }
 });
 
@@ -676,5 +680,270 @@ describe('mock mode (config.mock = true)', () => {
     expect(result).toHaveProperty('month');
     expect(result).toHaveProperty('peaks');
     expect(result).toHaveProperty('monthly_peak_w');
+  });
+});
+
+// ===========================================================================
+// STORY-013: Staleness tracking
+// ===========================================================================
+describe('staleness tracking', () => {
+  let originalDateNow;
+
+  beforeEach(() => {
+    originalDateNow = Date.now;
+  });
+
+  afterEach(() => {
+    Date.now = originalDateNow;
+  });
+
+  test('getLastSuccessTime returns 0 initially', () => {
+    expect(ApiClient.getLastSuccessTime('p1')).toBe(0);
+    expect(ApiClient.getLastSuccessTime('sungrow')).toBe(0);
+  });
+
+  test('getLastSuccessTime returns timestamp after successful P1 fetch', async () => {
+    const now = 1700000000000;
+    Date.now = jest.fn(() => now);
+
+    mockFetchSuccess(p1RealtimeFixture);
+    const config = makeConfig();
+    await ApiClient.fetchP1Realtime(config);
+
+    expect(ApiClient.getLastSuccessTime('p1')).toBe(now);
+  });
+
+  test('getLastSuccessTime returns timestamp after successful Sungrow fetch', async () => {
+    const now = 1700000000000;
+    Date.now = jest.fn(() => now);
+
+    mockFetchSuccess(sungrowRealtimeFixture);
+    const config = makeConfig();
+    await ApiClient.fetchSungrowRealtime(config);
+
+    expect(ApiClient.getLastSuccessTime('sungrow')).toBe(now);
+  });
+
+  test('isStale returns false immediately after successful fetch', async () => {
+    const now = 1700000000000;
+    Date.now = jest.fn(() => now);
+
+    mockFetchSuccess(p1RealtimeFixture);
+    const config = makeConfig();
+    await ApiClient.fetchP1Realtime(config);
+
+    // Still at the same time — should not be stale
+    expect(ApiClient.isStale('p1')).toBe(false);
+  });
+
+  test('isStale returns true after 30+ seconds with default threshold', async () => {
+    const startTime = 1700000000000;
+    Date.now = jest.fn(() => startTime);
+
+    mockFetchSuccess(p1RealtimeFixture);
+    const config = makeConfig();
+    await ApiClient.fetchP1Realtime(config);
+
+    // Advance time by 31 seconds
+    Date.now = jest.fn(() => startTime + 31000);
+
+    expect(ApiClient.isStale('p1')).toBe(true);
+  });
+
+  test('isStale returns false within custom threshold', async () => {
+    const startTime = 1700000000000;
+    Date.now = jest.fn(() => startTime);
+
+    mockFetchSuccess(p1RealtimeFixture);
+    const config = makeConfig();
+    await ApiClient.fetchP1Realtime(config);
+
+    // 15 seconds later, using 60s threshold
+    Date.now = jest.fn(() => startTime + 15000);
+
+    expect(ApiClient.isStale('p1', 60000)).toBe(false);
+  });
+
+  test('isStale returns true when lastSuccessTime is 0 (never fetched)', () => {
+    // Never fetched — lastSuccessTime is 0, so elapsed is huge
+    expect(ApiClient.isStale('p1')).toBe(true);
+    expect(ApiClient.isStale('sungrow')).toBe(true);
+  });
+
+  test('consecutiveFailures increments on failure', async () => {
+    const config = makeConfig();
+
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(0);
+
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Realtime(config);
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(1);
+
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Realtime(config);
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(2);
+
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Realtime(config);
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(3);
+  });
+
+  test('consecutiveFailures resets on success', async () => {
+    const config = makeConfig();
+
+    // Accumulate failures
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Realtime(config);
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Realtime(config);
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(2);
+
+    // Success resets the count
+    mockFetchSuccess(p1RealtimeFixture);
+    await ApiClient.fetchP1Realtime(config);
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(0);
+  });
+
+  test('isOffline returns false initially', () => {
+    expect(ApiClient.isOffline()).toBe(false);
+  });
+
+  test('isOffline returns true when both p1 and sungrow have 3+ failures', async () => {
+    const config = makeConfig();
+
+    // 3 P1 failures
+    for (let i = 0; i < 3; i++) {
+      mockFetchNetworkError();
+      await ApiClient.fetchP1Realtime(config);
+    }
+
+    // 3 Sungrow failures
+    for (let i = 0; i < 3; i++) {
+      mockFetchNetworkError();
+      await ApiClient.fetchSungrowRealtime(config);
+    }
+
+    expect(ApiClient.isOffline()).toBe(true);
+  });
+
+  test('isOffline returns false when only one source has 3+ failures', async () => {
+    const config = makeConfig();
+
+    // 3 P1 failures
+    for (let i = 0; i < 3; i++) {
+      mockFetchNetworkError();
+      await ApiClient.fetchP1Realtime(config);
+    }
+
+    // Only 2 Sungrow failures
+    for (let i = 0; i < 2; i++) {
+      mockFetchNetworkError();
+      await ApiClient.fetchSungrowRealtime(config);
+    }
+
+    expect(ApiClient.isOffline()).toBe(false);
+  });
+
+  test('successful fetch after failures clears failure count', async () => {
+    const config = makeConfig();
+
+    // 3 P1 failures
+    for (let i = 0; i < 3; i++) {
+      mockFetchNetworkError();
+      await ApiClient.fetchP1Realtime(config);
+    }
+
+    // 3 Sungrow failures
+    for (let i = 0; i < 3; i++) {
+      mockFetchNetworkError();
+      await ApiClient.fetchSungrowRealtime(config);
+    }
+
+    expect(ApiClient.isOffline()).toBe(true);
+
+    // P1 recovers
+    mockFetchSuccess(p1RealtimeFixture);
+    await ApiClient.fetchP1Realtime(config);
+
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(0);
+    expect(ApiClient.isOffline()).toBe(false);
+  });
+
+  test('P1 Series failure increments p1 consecutiveFailures', async () => {
+    const config = makeConfig();
+
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Series(config, 'day');
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(1);
+  });
+
+  test('P1 Capacity failure increments p1 consecutiveFailures', async () => {
+    const config = makeConfig();
+
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Capacity(config, '2026-02');
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(1);
+  });
+
+  test('Sungrow Series failure increments sungrow consecutiveFailures', async () => {
+    const config = makeConfig();
+
+    mockFetchNetworkError();
+    await ApiClient.fetchSungrowSeries(config, 'day');
+    expect(ApiClient.getConsecutiveFailures('sungrow')).toBe(1);
+  });
+
+  test('P1 Series success updates p1 lastSuccessTime', async () => {
+    const now = 1700000000000;
+    Date.now = jest.fn(() => now);
+
+    const seriesFixture = { device_id: 'p1-meter-01', frame: 'day', series: [] };
+    mockFetchSuccess(seriesFixture);
+    const config = makeConfig();
+    await ApiClient.fetchP1Series(config, 'day');
+
+    expect(ApiClient.getLastSuccessTime('p1')).toBe(now);
+  });
+
+  test('P1 Capacity success updates p1 lastSuccessTime', async () => {
+    const now = 1700000000000;
+    Date.now = jest.fn(() => now);
+
+    mockFetchSuccess(p1CapacityFixture);
+    const config = makeConfig();
+    await ApiClient.fetchP1Capacity(config, '2026-02');
+
+    expect(ApiClient.getLastSuccessTime('p1')).toBe(now);
+  });
+
+  test('Sungrow Series success updates sungrow lastSuccessTime', async () => {
+    const now = 1700000000000;
+    Date.now = jest.fn(() => now);
+
+    mockFetchSuccess(sungrowSeriesDayFixture);
+    const config = makeConfig();
+    await ApiClient.fetchSungrowSeries(config, 'day');
+
+    expect(ApiClient.getLastSuccessTime('sungrow')).toBe(now);
+  });
+
+  test('_resetState resets all staleness tracking state', async () => {
+    const config = makeConfig();
+
+    // Accumulate some state
+    mockFetchNetworkError();
+    await ApiClient.fetchP1Realtime(config);
+    mockFetchNetworkError();
+    await ApiClient.fetchSungrowRealtime(config);
+
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(1);
+    expect(ApiClient.getConsecutiveFailures('sungrow')).toBe(1);
+
+    ApiClient._resetState();
+
+    expect(ApiClient.getConsecutiveFailures('p1')).toBe(0);
+    expect(ApiClient.getConsecutiveFailures('sungrow')).toBe(0);
+    expect(ApiClient.getLastSuccessTime('p1')).toBe(0);
+    expect(ApiClient.getLastSuccessTime('sungrow')).toBe(0);
   });
 });

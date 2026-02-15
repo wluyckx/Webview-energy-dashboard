@@ -3,19 +3,21 @@
  * Initializes the dashboard and coordinates component lifecycle.
  *
  * CHANGELOG:
+ * - 2026-02-15: Add Flutter WebView bridge integration (STORY-014)
  * - 2026-02-15: Add 60-second energy balance polling (STORY-010)
  * - 2026-02-15: Integrate KpiStrip with polling and capacity fetch (STORY-008)
  * - 2026-02-15: Add 5-second realtime polling with startPolling (STORY-007)
  * - 2026-02-15: Initial scaffolding with DOMContentLoaded listener (STORY-001)
  *
- * TODO:
- * - Initialize charts (STORY-009)
+ * - 2026-02-15: Add Chart.js timeline chart with 5-min polling (STORY-009)
  */
 
 // eslint-disable-next-line no-unused-vars
 const App = (() => {
   /** Cached P1 capacity data, fetched once on init. */
   var capacityData = null;
+  /** Chart.js timeline chart instance (STORY-009). */
+  var timelineChart = null;
   /**
    * Show a user-friendly config error panel in the dashboard.
    * @param {string[]} errors - List of config error messages.
@@ -127,11 +129,98 @@ const App = (() => {
   }
 
   /**
+   * Fetch Sungrow series day data and update the timeline chart.
+   *
+   * @returns {Promise<void>}
+   */
+  function pollTimelineChart() {
+    var config = Config.getConfig();
+    if (!config || !timelineChart) {
+      return Promise.resolve();
+    }
+
+    return ApiClient.fetchSungrowSeries(config, 'day').then(function (data) {
+      if (data) {
+        Charts.updateTimelineChart(timelineChart, data);
+      }
+    });
+  }
+
+  /**
+   * Start 5-minute polling for timeline chart data (STORY-009).
+   * Performs an immediate fetch, then sets up the interval.
+   *
+   * @returns {number} The interval ID (for testing/cleanup).
+   */
+  function startTimelinePolling() {
+    // Immediate first poll
+    pollTimelineChart();
+
+    // Poll every 5 minutes
+    return setInterval(pollTimelineChart, 300000);
+  }
+
+  /**
+   * Validate and handle incoming postMessage events from Flutter WebView.
+   * Security: only accepts messages from same origin (AC5, STORY-014).
+   *
+   * @param {MessageEvent} event - The postMessage event.
+   */
+  function handleMessage(event) {
+    // 1. Validate origin — same-origin only (Flutter WebView posts from same origin)
+    if (event.origin !== window.location.origin) {
+      console.warn('[App] Rejected postMessage from untrusted origin:', event.origin);
+      return;
+    }
+
+    // 2. Validate data is an object with a string type field
+    var data = event.data;
+    if (!data || typeof data !== 'object' || typeof data.type !== 'string') {
+      console.warn('[App] Rejected postMessage with invalid schema:', data);
+      return;
+    }
+
+    // 3. Handle known message types
+    if (data.type === 'token_refresh' || data.type === 'bootstrap') {
+      var tokens = {};
+      if (typeof data.p1_token === 'string' && data.p1_token.trim() !== '') {
+        tokens.p1_token = data.p1_token;
+      }
+      if (typeof data.sungrow_token === 'string' && data.sungrow_token.trim() !== '') {
+        tokens.sungrow_token = data.sungrow_token;
+      }
+      if (Object.keys(tokens).length > 0 && typeof Config !== 'undefined') {
+        Config.updateTokens(tokens);
+      }
+    }
+  }
+
+  /**
+   * Dispatch an event to the Flutter app via the InAppWebView bridge.
+   * No-op if the bridge is not available (graceful fallback).
+   *
+   * @param {string} eventName - The handler name registered in Flutter.
+   * @param {*} data - The payload to send.
+   */
+  function dispatchToFlutter(eventName, data) {
+    if (
+      typeof window !== 'undefined' &&
+      window.flutter_inappwebview &&
+      typeof window.flutter_inappwebview.callHandler === 'function'
+    ) {
+      window.flutter_inappwebview.callHandler(eventName, data);
+    }
+  }
+
+  /**
    * Initialize the dashboard.
    * Parses config, shows errors if invalid, otherwise starts components.
    */
   function init() {
     console.log('Dashboard initialized');
+
+    // Listen for postMessage events from Flutter WebView (STORY-014)
+    window.addEventListener('message', handleMessage);
 
     // Parse config from URL parameters (STORY-002)
     if (typeof Config !== 'undefined') {
@@ -180,6 +269,17 @@ const App = (() => {
     ) {
       startEnergyBalancePolling();
     }
+
+    // Initialize timeline chart and start 5-min polling (STORY-009)
+    if (typeof Charts !== 'undefined') {
+      timelineChart = Charts.initTimelineChart('timeline-chart');
+      if (timelineChart && typeof Config !== 'undefined' && typeof ApiClient !== 'undefined') {
+        startTimelinePolling();
+      }
+    }
+
+    // Notify Flutter that the dashboard is ready (STORY-014)
+    dispatchToFlutter('dashboardReady', { version: '1.0' });
   }
 
   return {
@@ -187,6 +287,8 @@ const App = (() => {
     showConfigError: showConfigError,
     startPolling: startPolling,
     startEnergyBalancePolling: startEnergyBalancePolling,
+    handleMessage: handleMessage,
+    dispatchToFlutter: dispatchToFlutter,
   };
 })();
 

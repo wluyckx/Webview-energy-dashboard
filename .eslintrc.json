@@ -17,7 +17,9 @@
     "ApiClient": "readonly",
     "MockData": "readonly",
     "KpiStrip": "readonly",
-    "EnergyBalance": "readonly"
+    "EnergyBalance": "readonly",
+    "Charts": "readonly",
+    "Chart": "readonly"
   },
   "rules": {
     "no-unused-vars": "warn",

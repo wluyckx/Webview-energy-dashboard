@@ -606,12 +606,12 @@
           </p>
         </section>
 
-        <!-- Section D: Power Timeline (24h) -->
+        <!-- Section D: Power Timeline (24h) — STORY-009 -->
         <section id="section-d" class="dashboard-section" aria-label="Power Timeline">
           <h2 class="dashboard-section__title">Power Timeline</h2>
-          <p class="dashboard-section__placeholder">
-            24-hour power timeline chart will appear here
-          </p>
+          <div style="position: relative; width: 100%; height: 300px">
+            <canvas id="timeline-chart"></canvas>
+          </div>
         </section>
       </div>
 
@@ -634,12 +634,16 @@
       </section>
     </main>
 
+    <!-- Chart.js via CDN (ADR-002) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script src="src/config.js"></script>
     <script src="src/mock-data.js"></script>
     <script src="src/api-client.js"></script>
     <script src="src/power-flow.js"></script>
     <script src="src/kpi-strip.js"></script>
     <script src="src/energy-balance.js"></script>
+    <script src="src/charts.js"></script>
     <script src="src/app.js"></script>
   </body>
 </html>

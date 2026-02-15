@@ -8,6 +8,7 @@
  * STORY-003: API Client with Authentication
  *
  * CHANGELOG:
+ * - 2026-02-15: Add staleness tracking and offline detection (STORY-013)
  * - 2026-02-15: Add mock data path for all 7 functions (STORY-004)
  * - 2026-02-15: Initial implementation (STORY-003)
  */
@@ -45,6 +46,87 @@ const ApiClient = (() => {
       sungrowRealtime: null,
       sungrowSeries: {},
     };
+  }
+
+  /**
+   * Staleness tracking state (STORY-013).
+   * Tracks last successful API response time and consecutive failures per source.
+   */
+  var state = {
+    p1: { lastSuccessTime: 0, consecutiveFailures: 0 },
+    sungrow: { lastSuccessTime: 0, consecutiveFailures: 0 },
+  };
+
+  /**
+   * Reset staleness state. Exposed only for testing purposes via _resetState.
+   */
+  function resetState() {
+    state = {
+      p1: { lastSuccessTime: 0, consecutiveFailures: 0 },
+      sungrow: { lastSuccessTime: 0, consecutiveFailures: 0 },
+    };
+  }
+
+  /**
+   * Record a successful API fetch for a source.
+   *
+   * @param {string} source - 'p1' or 'sungrow'.
+   */
+  function recordSuccess(source) {
+    state[source].lastSuccessTime = Date.now();
+    state[source].consecutiveFailures = 0;
+  }
+
+  /**
+   * Record a failed API fetch for a source.
+   *
+   * @param {string} source - 'p1' or 'sungrow'.
+   */
+  function recordFailure(source) {
+    state[source].consecutiveFailures++;
+  }
+
+  /**
+   * Get the timestamp of the last successful fetch for a source.
+   *
+   * @param {string} source - 'p1' or 'sungrow'.
+   * @returns {number} Unix timestamp (ms) or 0 if never fetched.
+   */
+  function getLastSuccessTime(source) {
+    return state[source].lastSuccessTime;
+  }
+
+  /**
+   * Check whether a source's data is stale.
+   *
+   * @param {string} source - 'p1' or 'sungrow'.
+   * @param {number} [thresholdMs=30000] - Staleness threshold in milliseconds.
+   * @returns {boolean} True if elapsed time since last success exceeds threshold.
+   */
+  function isStale(source, thresholdMs) {
+    var threshold = thresholdMs !== undefined ? thresholdMs : 30000;
+    var elapsed = Date.now() - state[source].lastSuccessTime;
+    return elapsed > threshold;
+  }
+
+  /**
+   * Check whether the dashboard should be considered offline.
+   * Returns true if BOTH p1 and sungrow have 3+ consecutive failures.
+   *
+   * @returns {boolean} True if offline.
+   */
+  function isOffline() {
+    return state.p1.consecutiveFailures >= 3 && state.sungrow.consecutiveFailures >= 3;
+  }
+
+  /**
+   * Get the consecutive failure count for a source.
+   *
+   * @param {string} source - 'p1' or 'sungrow'.
+   * @returns {number} Number of consecutive failures.
+   */
+  function getConsecutiveFailures(source) {
+    return state[source].consecutiveFailures;
   }
 
   /**
@@ -132,9 +214,11 @@ const ApiClient = (() => {
     return authenticatedFetch(url, config.p1_token).then(
       function (data) {
         cache.p1Realtime = data;
+        recordSuccess('p1');
         return data;
       },
       function () {
+        recordFailure('p1');
         return cache.p1Realtime !== null ? cache.p1Realtime : null;
       }
     );
@@ -156,9 +240,11 @@ const ApiClient = (() => {
     return authenticatedFetch(url, config.p1_token).then(
       function (data) {
         cache.p1Series[frame] = data;
+        recordSuccess('p1');
         return data;
       },
       function () {
+        recordFailure('p1');
         return cache.p1Series[frame] !== undefined ? cache.p1Series[frame] : null;
       }
     );
@@ -180,9 +266,11 @@ const ApiClient = (() => {
     return authenticatedFetch(url, config.p1_token).then(
       function (data) {
         cache.p1Capacity[month] = data;
+        recordSuccess('p1');
         return data;
       },
       function () {
+        recordFailure('p1');
         return cache.p1Capacity[month] !== undefined ? cache.p1Capacity[month] : null;
       }
     );
@@ -207,9 +295,11 @@ const ApiClient = (() => {
     return authenticatedFetch(url, config.sungrow_token).then(
       function (data) {
         cache.sungrowRealtime = data;
+        recordSuccess('sungrow');
         return data;
       },
       function () {
+        recordFailure('sungrow');
         return cache.sungrowRealtime !== null ? cache.sungrowRealtime : null;
       }
     );
@@ -232,9 +322,11 @@ const ApiClient = (() => {
     return authenticatedFetch(url, config.sungrow_token).then(
       function (data) {
         cache.sungrowSeries[frame] = data;
+        recordSuccess('sungrow');
         return data;
       },
       function () {
+        recordFailure('sungrow');
         return cache.sungrowSeries[frame] !== undefined ? cache.sungrowSeries[frame] : null;
       }
     );
@@ -297,7 +389,12 @@ const ApiClient = (() => {
     fetchSungrowSeries: fetchSungrowSeries,
     checkP1Health: checkP1Health,
     checkSungrowHealth: checkSungrowHealth,
+    getLastSuccessTime: getLastSuccessTime,
+    isStale: isStale,
+    isOffline: isOffline,
+    getConsecutiveFailures: getConsecutiveFailures,
     _resetCache: resetCache,
+    _resetState: resetState,
   };
 })();
 
