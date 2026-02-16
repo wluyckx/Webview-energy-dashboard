@@ -70,5 +70,5 @@ info "Container status:"
 ssh "${VPS_USER}@${VPS_HOST}" "docker compose -f ${VPS_PATH}/docker-compose.yml ps"
 
 echo ""
-info "Deploy complete! Dashboard should be available at https://dashboard.wimluyckx.dev"
-info "Health check: curl https://dashboard.wimluyckx.dev/health"
+info "Deploy complete! Dashboard should be available at https://dashboard.energy.wimluyckx.dev"
+info "Health check: curl https://dashboard.energy.wimluyckx.dev/health"
