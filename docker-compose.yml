@@ -14,5 +14,5 @@ services:
 
 networks:
   default:
-    name: caddy_default
+    name: edge
     external: true
