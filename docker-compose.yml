@@ -5,5 +5,14 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8090:80"
+    networks:
+      default:
+        aliases:
+          - en_dashboard
     environment:
       CSP_CONNECT_HOSTS: "https://api.p1.wimluyckx.dev https://api.sungrow.wimluyckx.dev"
+
+networks:
+  default:
+    name: caddy_default
+    external: true
