@@ -4,7 +4,7 @@ set -euo pipefail
 # --- Configuration ---
 VPS_HOST="${VPS_HOST:?Set VPS_HOST to your server address (e.g. vps.wimluyckx.dev)}"
 VPS_USER="${VPS_USER:-deploy}"
-VPS_PATH="${VPS_PATH:-/opt/energy-dashboard}"
+VPS_PATH="${VPS_PATH:-~/apps/energy-dashboard}"
 
 # --- Colors ---
 GREEN='\033[0;32m'
