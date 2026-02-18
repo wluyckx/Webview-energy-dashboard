@@ -386,6 +386,8 @@ Work is Done only when:
 - [ ] Visual output matches docs/FE_design.md for presentation stories
 - [ ] Accessibility: prefers-reduced-motion respected, WCAG AA contrast, minimum 44x44px touch targets
 
+## 10b. Governance agent after scoped task execution.
+The governance agent asks user to /clear context when all parallel tasks launched by the governance agents are marked done.
 ---
 
 ## 11. Code File Documentation Standard

@@ -629,6 +629,7 @@ The build script (`scripts/build.js`) inlines all `src/*.js` and CSS into a sing
 | P1 `power_w` | Importing from grid | Exporting to grid | Authoritative source for grid direction |
 | P1 `import_power_w` | Importing (always >= 0) | N/A | |
 | Sungrow `battery_power_w` | Charging | Discharging | Source: register 5213 S16, scale=−1 (confirmed 2026-02-18) |
+| Sungrow `battery_soc_pct` | N/A (0–100 %) | N/A | **Field name has `_pct` suffix.** Source: register 13022 U16 scale=0.1 (confirmed 2026-02-18). Leads GoSungrow cloud by ~15 min. |
 | Sungrow `export_power_w` | Exporting to grid | Importing from grid | **Always 0 on this WiNet-S firmware** — use P1 `power_w` for grid direction |
 | Sungrow `pv_power_w` | Producing (always >= 0) | N/A | AC output power (register 5016); not DC — confirmed 2026-02-18 |
 | Sungrow `load_power_w` | Consuming (always >= 0) | N/A | Source: register 13007 U16 (confirmed 2026-02-18) |
