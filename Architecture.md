@@ -297,6 +297,11 @@ the key tokens; the FE design doc is the source of truth for details.
   - Auth: `Authorization: Bearer <sungrow_token>` (from WebView bridge)
   - Data: Real-time solar/battery/load, historical series
   - Endpoints: `/v1/realtime`, `/v1/series`, `/health`
+  - Notes (confirmed 2026-02-18 via Modbus reconciliation):
+    - `pv_power_w` is AC output power (register 5016), not DC panel production
+    - `export_power_w` is always 0 — this WiNet-S firmware does not expose grid export; use P1 `power_w` for grid direction
+    - `battery_power_w` positive = charging, negative = discharging (register 5213 S16, scale=−1)
+    - `load_power_w` is house consumption (register 13007 U16)
 
 - **Belgian Energy API** (Future):
   - Protocol: HTTPS REST
@@ -619,14 +624,14 @@ The build script (`scripts/build.js`) inlines all `src/*.js` and CSS into a sing
 
 ## Sign Convention Reference
 
-| Field | Positive means | Negative means |
-|-------|---------------|----------------|
-| P1 `power_w` | Importing from grid | Exporting to grid |
-| P1 `import_power_w` | Importing (always >= 0) | N/A |
-| Sungrow `battery_power_w` | Charging | Discharging |
-| Sungrow `export_power_w` | Exporting to grid | Importing from grid |
-| Sungrow `pv_power_w` | Producing (always >= 0) | N/A |
-| Sungrow `load_power_w` | Consuming (always >= 0) | N/A |
+| Field | Positive means | Negative means | Notes |
+|-------|---------------|----------------|-------|
+| P1 `power_w` | Importing from grid | Exporting to grid | Authoritative source for grid direction |
+| P1 `import_power_w` | Importing (always >= 0) | N/A | |
+| Sungrow `battery_power_w` | Charging | Discharging | Source: register 5213 S16, scale=−1 (confirmed 2026-02-18) |
+| Sungrow `export_power_w` | Exporting to grid | Importing from grid | **Always 0 on this WiNet-S firmware** — use P1 `power_w` for grid direction |
+| Sungrow `pv_power_w` | Producing (always >= 0) | N/A | AC output power (register 5016); not DC — confirmed 2026-02-18 |
+| Sungrow `load_power_w` | Consuming (always >= 0) | N/A | Source: register 13007 U16 (confirmed 2026-02-18) |
 
 ---
 
