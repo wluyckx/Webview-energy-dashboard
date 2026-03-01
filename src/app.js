@@ -3,6 +3,7 @@
  * Initializes the dashboard and coordinates component lifecycle.
  *
  * CHANGELOG:
+ * - 2026-03-01: Remove token guards — support proxy mode (cookie-based auth via Caddy)
  * - 2026-02-15: Always call updateStatusBar after polling, including failure path (BUGFIX)
  * - 2026-02-15: Restrict null-origin postMessage to WebView context only (BUGFIX)
  * - 2026-02-15: Fix XSS in showConfigError — use textContent/DOM nodes instead of innerHTML (BUGFIX)
@@ -166,11 +167,6 @@ const App = (() => {
       return Promise.resolve();
     }
 
-    // Skip authenticated fetches until all required tokens are delivered (HC-002)
-    if (!config.mock && (!config.p1_token || !config.sungrow_token)) {
-      return Promise.resolve();
-    }
-
     return Promise.all([
       ApiClient.fetchP1Realtime(config),
       ApiClient.fetchSungrowRealtime(config),
@@ -220,11 +216,6 @@ const App = (() => {
       return Promise.resolve();
     }
 
-    // Skip until Sungrow token is delivered or mock mode active (HC-002)
-    if (!config.mock && !config.sungrow_token) {
-      return Promise.resolve();
-    }
-
     return ApiClient.fetchSungrowSeries(config, 'day').then(function (data) {
       if (data) {
         EnergyBalance.update(data);
@@ -254,11 +245,6 @@ const App = (() => {
   function pollTimelineChart() {
     var config = Config.getConfig();
     if (!config || !timelineChart) {
-      return Promise.resolve();
-    }
-
-    // Skip until Sungrow token is delivered or mock mode active (HC-002)
-    if (!config.mock && !config.sungrow_token) {
       return Promise.resolve();
     }
 

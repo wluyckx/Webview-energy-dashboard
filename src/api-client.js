@@ -8,6 +8,7 @@
  * STORY-003: API Client with Authentication
  *
  * CHANGELOG:
+ * - 2026-03-01: Support proxy mode — cookie-based auth when no Bearer token provided
  * - 2026-02-15: Add staleness tracking and offline detection (STORY-013)
  * - 2026-02-15: Add mock data path for all 7 functions (STORY-004)
  * - 2026-02-15: Initial implementation (STORY-003)
@@ -157,20 +158,23 @@ const ApiClient = (() => {
   }
 
   /**
-   * Perform an authenticated fetch: adds Authorization: Bearer header,
-   * enforces 30s timeout, and parses JSON on success.
+   * Perform an authenticated fetch: adds Authorization: Bearer header when a
+   * token is provided, otherwise uses credentials: 'include' to send cookies
+   * (proxy mode — Caddy injects backend tokens server-side).
    *
    * @param {string} url - The full URL to fetch.
-   * @param {string} token - The Bearer token.
+   * @param {string} [token] - Optional Bearer token. If empty/undefined, cookie auth is used.
    * @returns {Promise<Object>} Parsed JSON response data.
    * @throws {Error} On network error, timeout, or non-200 status.
    */
   function authenticatedFetch(url, token) {
-    return fetchWithTimeout(url, {
-      headers: {
-        Authorization: 'Bearer ' + token,
-      },
-    }).then(function (response) {
+    var options = {};
+    if (token) {
+      options.headers = { Authorization: 'Bearer ' + token };
+    } else {
+      options.credentials = 'include';
+    }
+    return fetchWithTimeout(url, options).then(function (response) {
       if (!response.ok) {
         throw new Error('HTTP ' + response.status);
       }
