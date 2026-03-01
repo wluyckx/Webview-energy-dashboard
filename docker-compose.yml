@@ -1,6 +1,6 @@
 services:
   dashboard:
-    build: .
+    image: ghcr.io/wluyckx/energy-dashboard:latest
     container_name: energy-dashboard
     restart: unless-stopped
     ports:
@@ -10,7 +10,7 @@ services:
         aliases:
           - en_dashboard
     environment:
-      CSP_CONNECT_HOSTS: "https://api.p1.wimluyckx.dev https://api.sungrow.wimluyckx.dev"
+      CSP_CONNECT_HOSTS: "https://hestia.wimluyckx.dev"
 
 networks:
   default:
