@@ -4,6 +4,7 @@
  * in a diamond/cross arrangement with connection lines between them.
  *
  * CHANGELOG:
+ * - 2026-03-16: Update hero value under flow diagram with home consumption
  * - 2026-02-15: Add computeFlows, formatPower, updateNodeValues, updateAllFlows (STORY-007)
  * - 2026-02-15: Add animated flow line helpers (STORY-006)
  * - 2026-02-15: Initial SVG layout with 4 nodes and 5 connection paths (STORY-005)
@@ -611,6 +612,18 @@ const PowerFlow = (() => {
     var socEl = document.querySelector('[data-soc="battery"]');
     if (socEl) {
       socEl.textContent = Math.round(flows.batterySoc) + '%';
+    }
+
+    // Update hero value under the flow diagram with home consumption
+    var heroEl = document.querySelector('.section-power-flow__hero-value span:first-child');
+    if (heroEl) {
+      var formatted = formatPower(flows.homeTotal);
+      var parts = formatted.split(' ');
+      heroEl.textContent = parts[0];
+      var unitEl = document.querySelector('.section-power-flow__hero-unit');
+      if (unitEl) {
+        unitEl.textContent = parts[1] || 'W';
+      }
     }
   }
 
