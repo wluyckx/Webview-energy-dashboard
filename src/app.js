@@ -186,6 +186,11 @@ const App = (() => {
         }
       }
 
+      // Feed P1 realtime data to P1 card live view
+      if (p1Data && typeof P1Card !== 'undefined') {
+        P1Card.onRealtimeData(p1Data);
+      }
+
       // Always update status bar so offline/delayed states are rendered (STORY-013)
       updateStatusBar();
     });
@@ -407,6 +412,11 @@ const App = (() => {
           }
         });
       }
+    }
+
+    // Initialize P1 power card (HomeWizard-style)
+    if (typeof P1Card !== 'undefined' && typeof Config !== 'undefined') {
+      P1Card.init();
     }
 
     // Notify Flutter that the dashboard is ready (STORY-014)
