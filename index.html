@@ -641,6 +641,34 @@
         padding: 0 var(--space-3);
       }
 
+      /* Gated Day/Month/Year views: defined unavailable state (RW-M04).
+         Fills the chart-wrap height so the card keeps its shape. */
+      .p1-card__unavailable {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        width: 100%;
+        height: 100%;
+        padding: var(--space-4);
+        text-align: center;
+        font-family: var(--font-body);
+      }
+
+      .p1-card__unavailable-message {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .p1-card__unavailable-detail {
+        font-size: 12px;
+        line-height: 1.5;
+        max-width: 44ch;
+        color: var(--text-secondary);
+      }
+
       .p1-card__tabs {
         display: flex;
         justify-content: center;

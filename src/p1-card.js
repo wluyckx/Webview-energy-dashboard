@@ -3,13 +3,15 @@
  *
  * Renders a multi-view card with Live/Day/Month/Year tabs:
  * - Live: real-time area chart (power_w over last N readings)
- * - Day: hourly bar chart (import vs export kWh)
- * - Month: daily bar chart
- * - Year: monthly bar chart
+ * - Day / Month / Year: gated. The P1 history endpoint's per-bucket response
+ *   shape has never been captured from the live meter, so these views render a
+ *   defined "not available yet" state instead of a chart, and issue no request.
+ *   RW-C01 captures the contract and is what unlocks them.
  *
  * Purple (#c084fc) = grid import, Green (#34d399) = grid export.
  *
  * CHANGELOG:
+ * - 2026-07-30: Gate Day/Month/Year behind an honest unavailable state until the P1 series contract is captured (RW-M04)
  * - 2026-07-30: Remove three dead design-token constants; prettier reflow (RW-M01)
  * - 2026-03-20: Initial creation — HomeWizard-inspired P1 card
  */
@@ -32,13 +34,10 @@ var P1Card = (function () {
   var LIVE_BUFFER_SIZE = 60; // 5 minutes at 5s polling
   var pollTimer = null;
 
-  // ─── Helpers ──────────────────────────────────────────────────────
+  // Neutral (no reading) markup for the header's live indicator.
+  var LIVE_VALUE_IDLE_HTML = '<span class="p1-card__live-dot"></span><span>--W</span>';
 
-  function formatKwh(kwh) {
-    if (kwh >= 100) return kwh.toFixed(0);
-    if (kwh >= 10) return kwh.toFixed(1);
-    return kwh.toFixed(2);
-  }
+  // ─── Helpers ──────────────────────────────────────────────────────
 
   function formatWatts(w) {
     if (Math.abs(w) >= 1000) return (w / 1000).toFixed(1) + ' kW';
@@ -99,7 +98,7 @@ var P1Card = (function () {
     var iconArea = document.createElement('div');
     iconArea.className = 'p1-card__icon-area';
     iconArea.id = 'p1-card-live-value';
-    iconArea.innerHTML = '<span class="p1-card__live-dot"></span><span>--W</span>';
+    iconArea.innerHTML = LIVE_VALUE_IDLE_HTML;
 
     header.appendChild(titleArea);
     header.appendChild(iconArea);
@@ -133,6 +132,61 @@ var P1Card = (function () {
     section.appendChild(tabs);
   }
 
+  // ─── Unavailable State (gated views) ──────────────────────────────
+
+  function chartWrap() {
+    var section = document.getElementById('section-p1-card');
+    if (!section) return null;
+    return section.querySelector('.p1-card__chart-wrap');
+  }
+
+  /**
+   * Render the static "not available yet" state in place of the chart.
+   * The canvas is REMOVED, not hidden — a hidden canvas stays in the
+   * accessibility tree. Takes no data and therefore cannot fail.
+   */
+  function renderUnavailableState() {
+    var wrap = chartWrap();
+    if (!wrap) return;
+
+    wrap.innerHTML = '';
+
+    var box = document.createElement('div');
+    box.className = 'p1-card__unavailable';
+    box.setAttribute('role', 'status');
+
+    var message = document.createElement('p');
+    message.className = 'p1-card__unavailable-message';
+    message.textContent = 'History is not available yet';
+
+    var detail = document.createElement('p');
+    detail.className = 'p1-card__unavailable-detail';
+    detail.textContent =
+      'The format of the P1 meter history data has not been captured yet, so there is ' +
+      'nothing here that can be shown honestly. This view returns once it has been.';
+
+    box.appendChild(message);
+    box.appendChild(detail);
+    wrap.appendChild(box);
+
+    setHeaderUnavailable();
+  }
+
+  /** Undo the gate: drop the unavailable state and put the canvas back. */
+  function restoreChartCanvas() {
+    var wrap = chartWrap();
+    if (!wrap) return;
+
+    var unavailable = wrap.querySelector('.p1-card__unavailable');
+    if (unavailable) wrap.removeChild(unavailable);
+
+    if (!wrap.querySelector('canvas')) {
+      var canvas = document.createElement('canvas');
+      canvas.id = 'p1-card-chart';
+      wrap.appendChild(canvas);
+    }
+  }
+
   // ─── Tab Switching ────────────────────────────────────────────────
 
   function switchView(view) {
@@ -150,15 +204,22 @@ var P1Card = (function () {
       chart = null;
     }
 
-    // Reset live buffer on view change
-    if (view === 'live') {
-      liveBuffer = [];
+    // Day/Month/Year are GATED. The per-bucket response shape of the P1
+    // history endpoint has never been captured from the live meter (risk R1),
+    // so there is no contract to render against and nothing safe to poll
+    // (HC-006). These views build no chart and make no request; they show a
+    // defined unavailable state instead. Unlock condition: RW-C01 — once that
+    // story captures the real contract, the chart path can be rebuilt on it.
+    if (view !== 'live') {
+      renderUnavailableState();
+      return;
     }
 
-    // Create new chart for this view
+    // Live: reset the rolling buffer, restore the canvas the gate removed,
+    // rebuild the chart and resume normal behaviour.
+    liveBuffer = [];
+    restoreChartCanvas();
     initChartForView(view);
-
-    // Fetch data immediately
     fetchAndUpdate();
   }
 
@@ -166,16 +227,12 @@ var P1Card = (function () {
 
   function initChartForView(view) {
     if (typeof Chart === 'undefined') return;
+    if (view !== 'live') return; // gated views have no chart at all
 
     var canvas = document.getElementById('p1-card-chart');
     if (!canvas) return;
-    var ctx = canvas.getContext('2d');
 
-    if (view === 'live') {
-      chart = createLiveChart(ctx, canvas);
-    } else {
-      chart = createBarChart(ctx, view);
-    }
+    chart = createLiveChart(canvas.getContext('2d'), canvas);
   }
 
   function createLiveChart(ctx, canvas) {
@@ -265,132 +322,20 @@ var P1Card = (function () {
     };
   }
 
-  function createBarChart(ctx, view) {
-    return new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: [],
-        datasets: [
-          {
-            label: 'Import',
-            data: [],
-            backgroundColor: IMPORT_COLOR,
-            borderRadius: { topLeft: 3, topRight: 3 },
-            borderSkipped: false,
-          },
-          {
-            label: 'Export',
-            data: [],
-            backgroundColor: EXPORT_COLOR,
-            borderRadius: { topLeft: 3, topRight: 3 },
-            borderSkipped: false,
-          },
-        ],
-      },
-      options: barChartOptions(view),
-    });
-  }
-
-  function barChartOptions(view) {
-    var xTitle = view === 'day' ? '' : view === 'month' ? '' : '';
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 400 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: BG_ELEVATED,
-          titleColor: TEXT_SECONDARY,
-          bodyColor: TEXT_PRIMARY,
-          borderColor: BORDER,
-          borderWidth: 1,
-          padding: 10,
-          displayColors: true,
-          callbacks: {
-            label: function (ctx) {
-              return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + ' kWh';
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          ticks: { color: TEXT_DIM, font: { size: 10 }, maxRotation: 0 },
-          grid: { display: false },
-          border: { display: false },
-          title: xTitle
-            ? { display: true, text: xTitle, color: TEXT_SECONDARY }
-            : { display: false },
-        },
-        y: {
-          ticks: {
-            color: TEXT_DIM,
-            font: { size: 10 },
-            callback: function (v) {
-              return v.toFixed(0);
-            },
-          },
-          grid: { color: BORDER, drawBorder: false },
-          border: { display: false },
-        },
-      },
-    };
-  }
-
-  // ─── Data Processing ──────────────────────────────────────────────
-
-  /**
-   * Process P1 series data — compute per-bucket deltas from cumulative meters.
-   * P1 series buckets have cumulative energy_import_kwh / energy_export_kwh.
-   * We diff consecutive buckets to get hourly/daily/monthly consumption.
-   */
-  function computeDeltas(series) {
-    var result = [];
-    for (var i = 1; i < series.length; i++) {
-      var prev = series[i - 1];
-      var curr = series[i];
-      var importDelta = (curr.energy_import_kwh - prev.energy_import_kwh) / 1000;
-      var exportDelta = (curr.energy_export_kwh - prev.energy_export_kwh) / 1000;
-
-      // Sanity: if the values are huge (cumulative Wh readings), normalize
-      if (importDelta > 1000) {
-        importDelta = (curr.avg_power_w * 1) / 1000; // fallback to avg_power * 1h / 1000
-      }
-      if (exportDelta > 1000) {
-        exportDelta = 0;
-      }
-
-      result.push({
-        bucket: curr.bucket,
-        import_kwh: Math.max(0, importDelta),
-        export_kwh: Math.max(0, exportDelta),
-        avg_power_w: curr.avg_power_w || 0,
-        max_power_w: curr.max_power_w || 0,
-      });
-    }
-    return result;
-  }
-
   // ─── Data Fetching & Chart Updates ────────────────────────────────
 
   function fetchAndUpdate() {
+    // Only Live has a captured contract to fetch against. The gated views make
+    // no request at all — see the gate in switchView (RW-C01 / R1).
+    if (currentView !== 'live') return;
+
     var config = Config.getConfig();
     if (!config) return;
 
-    if (currentView === 'live') {
-      ApiClient.fetchP1Realtime(config).then(function (data) {
-        if (!data) return;
-        updateLiveView(data);
-      });
-    } else {
-      var frame = currentView; // day, month, year
-      ApiClient.fetchP1Series(config, frame).then(function (data) {
-        if (!data || !data.series) return;
-        updateBarView(data, frame);
-      });
-    }
+    ApiClient.fetchP1Realtime(config).then(function (data) {
+      if (!data) return;
+      updateLiveView(data);
+    });
   }
 
   function updateLiveView(data) {
@@ -405,7 +350,7 @@ var P1Card = (function () {
     }
 
     // Update header
-    updateHeader(null, data);
+    updateHeader(data);
 
     // Update live value indicator
     var liveEl = document.getElementById('p1-card-live-value');
@@ -434,73 +379,32 @@ var P1Card = (function () {
     chart.update('none');
   }
 
-  function updateBarView(seriesData, frame) {
-    var deltas = computeDeltas(seriesData.series);
-    if (deltas.length === 0) return;
+  function updateHeader(realtimeData) {
+    if (!realtimeData || currentView !== 'live') return;
 
-    var labels = [];
-    var importData = [];
-    var exportData = [];
-    var totalImport = 0;
-    var totalExport = 0;
-
-    deltas.forEach(function (d) {
-      var date = new Date(d.bucket);
-      if (frame === 'day') {
-        labels.push(timeLabel(date));
-      } else if (frame === 'month') {
-        labels.push(date.getDate());
-      } else {
-        var months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ];
-        labels.push(months[date.getMonth()]);
-      }
-      importData.push(d.import_kwh);
-      exportData.push(d.export_kwh);
-      totalImport += d.import_kwh;
-      totalExport += d.export_kwh;
-    });
-
-    // Update header totals
-    updateHeader({ import_kwh: totalImport, export_kwh: totalExport }, null);
-
-    // Update chart
-    if (!chart) return;
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = importData;
-    chart.data.datasets[1].data = exportData;
-    chart.update();
-  }
-
-  function updateHeader(totals, realtimeData) {
     var importEl = document.getElementById('p1-card-import');
     var exportEl = document.getElementById('p1-card-export');
 
-    if (totals) {
-      if (importEl) importEl.textContent = formatKwh(totals.import_kwh);
-      if (exportEl) exportEl.textContent = formatKwh(totals.export_kwh);
-    }
+    // Live view shows current grid power. The realtime payload carries no
+    // start-of-day baseline, so no cumulative total is claimed here.
+    var pw = realtimeData.power_w || 0;
+    if (importEl) importEl.textContent = formatWatts(Math.abs(pw));
+    if (exportEl) exportEl.textContent = '';
+  }
 
-    if (realtimeData && currentView === 'live') {
-      // For live view, show today's cumulative from realtime data
-      // (These are total meter readings — we'd need start-of-day baseline)
-      // For now show current power in header
-      var pw = realtimeData.power_w || 0;
-      if (importEl) importEl.textContent = formatWatts(Math.abs(pw));
-      if (exportEl) exportEl.textContent = '';
-    }
+  /**
+   * Header honesty on gated views: an em dash, never a stale total, never NaN.
+   * The live indicator is reset to its idle state too — while gated nothing is
+   * polled, so the last reading must not keep posing as a current one.
+   */
+  function setHeaderUnavailable() {
+    var importEl = document.getElementById('p1-card-import');
+    var exportEl = document.getElementById('p1-card-export');
+    if (importEl) importEl.textContent = '—';
+    if (exportEl) exportEl.textContent = '—';
+
+    var liveEl = document.getElementById('p1-card-live-value');
+    if (liveEl) liveEl.innerHTML = LIVE_VALUE_IDLE_HTML;
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────
