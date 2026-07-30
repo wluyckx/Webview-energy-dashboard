@@ -5,6 +5,10 @@
  * TDD: Tests written FIRST, before implementation.
  *
  * CHANGELOG:
+ * - 2026-07-30: RW-M05 hardening rider — delete Bearer-header assertions and
+ *   the p1_token/sungrow_token fields from makeConfig() defaults (HC-002:
+ *   no token, in any form, is ever present); add AC5 coverage asserting no
+ *   call path can ever produce an Authorization header (RW-M05)
  * - 2026-02-15: Add staleness tracking tests (STORY-013)
  * - 2026-02-15: Add mock mode tests (STORY-004)
  * - 2026-02-15: Initial test suite (STORY-003)
@@ -30,8 +34,11 @@ function makeConfig(overrides = {}) {
       sungrow_base: 'https://api.sungrow.wimluyckx.dev',
       p1_device_id: 'device-p1-001',
       sungrow_device_id: 'device-sg-001',
-      p1_token: 'bearer-token-p1',
-      sungrow_token: 'bearer-token-sg',
+      // No p1_token/sungrow_token here (RW-M05 / HC-002): Config never
+      // produces these fields any more. Individual tests may still pass a
+      // token-shaped field via `overrides` to prove (AC5) that even a stray
+      // token-like field on the config object is never forwarded as an
+      // Authorization header.
       mock: false,
     },
     overrides
@@ -147,73 +154,90 @@ describe('successful fetch returns parsed JSON', () => {
 });
 
 // ===========================================================================
-// 2. Authorization: Bearer header is set correctly
+// RW-M05 AC5: authenticatedFetch must never produce an Authorization header.
+//
+// REMOVED (RW-M05 AC5): "Authorization: Bearer header is set correctly"
+// asserted that fetchP1Realtime/fetchP1Series/fetchP1Capacity/
+// fetchSungrowRealtime/fetchSungrowSeries send `Authorization: Bearer
+// <token>`. That is exactly the behavior HC-002 (as rewritten) forbids — no
+// API token, in any form, may ever be forwarded by the client. Replaced
+// entirely by the tests below, which assert the opposite: no call path may
+// ever produce an Authorization header, and credentials: 'include' is always
+// used instead (session-cookie auth via Caddy).
 // ===========================================================================
-describe('Authorization: Bearer header is set correctly', () => {
-  test('fetchP1Realtime sends Bearer p1_token', async () => {
+describe('AC5: authenticatedFetch never produces an Authorization header', () => {
+  test('fetchP1Realtime always uses credentials: include and never sets Authorization, even with a token-shaped field on config', async () => {
     mockFetchSuccess(p1RealtimeFixture);
-    const config = makeConfig();
+    const config = makeConfig({ p1_token: 'stray-token-that-must-never-be-forwarded' });
     await ApiClient.fetchP1Realtime(config);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const callArgs = fetchMock.mock.calls[0];
-    const url = callArgs[0];
-    const options = callArgs[1];
-    expect(url).toBe('https://api.p1.wimluyckx.dev/v1/realtime?device_id=device-p1-001');
-    expect(options.headers.Authorization).toBe('Bearer bearer-token-p1');
+    const options = fetchMock.mock.calls[0][1];
+    expect(options.credentials).toBe('include');
+    expect(options.headers).toBeUndefined();
   });
 
-  test('fetchP1Series sends Bearer p1_token', async () => {
+  test('fetchP1Series always uses credentials: include and never sets Authorization, even with a token-shaped field on config', async () => {
     const seriesFixture = { device_id: 'p1-meter-01', frame: 'day', series: [] };
     mockFetchSuccess(seriesFixture);
-    const config = makeConfig();
+    const config = makeConfig({ p1_token: 'stray-token-that-must-never-be-forwarded' });
     await ApiClient.fetchP1Series(config, 'day');
 
-    const callArgs = fetchMock.mock.calls[0];
-    const url = callArgs[0];
-    const options = callArgs[1];
-    expect(url).toBe('https://api.p1.wimluyckx.dev/v1/series?device_id=device-p1-001&frame=day');
-    expect(options.headers.Authorization).toBe('Bearer bearer-token-p1');
+    const options = fetchMock.mock.calls[0][1];
+    expect(options.credentials).toBe('include');
+    expect(options.headers).toBeUndefined();
   });
 
-  test('fetchP1Capacity sends Bearer p1_token', async () => {
+  test('fetchP1Capacity always uses credentials: include and never sets Authorization, even with a token-shaped field on config', async () => {
     mockFetchSuccess(p1CapacityFixture);
-    const config = makeConfig();
+    const config = makeConfig({ p1_token: 'stray-token-that-must-never-be-forwarded' });
     await ApiClient.fetchP1Capacity(config, '2026-02');
 
-    const callArgs = fetchMock.mock.calls[0];
-    const url = callArgs[0];
-    const options = callArgs[1];
-    expect(url).toBe(
-      'https://api.p1.wimluyckx.dev/v1/capacity/month/2026-02?device_id=device-p1-001'
-    );
-    expect(options.headers.Authorization).toBe('Bearer bearer-token-p1');
+    const options = fetchMock.mock.calls[0][1];
+    expect(options.credentials).toBe('include');
+    expect(options.headers).toBeUndefined();
   });
 
-  test('fetchSungrowRealtime sends Bearer sungrow_token', async () => {
+  test('fetchSungrowRealtime always uses credentials: include and never sets Authorization, even with a token-shaped field on config', async () => {
     mockFetchSuccess(sungrowRealtimeFixture);
-    const config = makeConfig();
+    const config = makeConfig({ sungrow_token: 'stray-token-that-must-never-be-forwarded' });
     await ApiClient.fetchSungrowRealtime(config);
 
-    const callArgs = fetchMock.mock.calls[0];
-    const url = callArgs[0];
-    const options = callArgs[1];
-    expect(url).toBe('https://api.sungrow.wimluyckx.dev/v1/realtime?device_id=device-sg-001');
-    expect(options.headers.Authorization).toBe('Bearer bearer-token-sg');
+    const options = fetchMock.mock.calls[0][1];
+    expect(options.credentials).toBe('include');
+    expect(options.headers).toBeUndefined();
   });
 
-  test('fetchSungrowSeries sends Bearer sungrow_token', async () => {
+  test('fetchSungrowSeries always uses credentials: include and never sets Authorization, even with a token-shaped field on config', async () => {
     mockFetchSuccess(sungrowSeriesDayFixture);
-    const config = makeConfig();
+    const config = makeConfig({ sungrow_token: 'stray-token-that-must-never-be-forwarded' });
     await ApiClient.fetchSungrowSeries(config, 'day');
 
-    const callArgs = fetchMock.mock.calls[0];
-    const url = callArgs[0];
-    const options = callArgs[1];
-    expect(url).toBe(
-      'https://api.sungrow.wimluyckx.dev/v1/series?device_id=device-sg-001&frame=day'
-    );
-    expect(options.headers.Authorization).toBe('Bearer bearer-token-sg');
+    const options = fetchMock.mock.calls[0][1];
+    expect(options.credentials).toBe('include');
+    expect(options.headers).toBeUndefined();
+  });
+
+  test('no fetch call across any ApiClient function ever includes an Authorization header', async () => {
+    mockFetchSuccess(p1RealtimeFixture);
+    mockFetchSuccess(sungrowRealtimeFixture);
+    mockFetchSuccess(p1CapacityFixture);
+    mockFetchSuccess(sungrowSeriesDayFixture);
+    const config = makeConfig({
+      p1_token: 'stray-p1-token',
+      sungrow_token: 'stray-sungrow-token',
+    });
+
+    await ApiClient.fetchP1Realtime(config);
+    await ApiClient.fetchSungrowRealtime(config);
+    await ApiClient.fetchP1Capacity(config, '2026-02');
+    await ApiClient.fetchSungrowSeries(config, 'day');
+
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(0);
+    fetchMock.mock.calls.forEach((call) => {
+      const options = call[1] || {};
+      expect(options.headers).toBeUndefined();
+      expect(options.credentials).toBe('include');
+    });
   });
 });
 

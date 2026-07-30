@@ -3,6 +3,9 @@
  * Initializes the dashboard and coordinates component lifecycle.
  *
  * CHANGELOG:
+ * - 2026-07-30: Hardening rider — delete the postMessage token bridge
+ *   (handleMessage, its 'message' listener and the origin allowlist); the
+ *   client handles no credential of any kind (RW-M05)
  * - 2026-03-01: Remove token guards — support proxy mode (cookie-based auth via Caddy)
  * - 2026-02-15: Always call updateStatusBar after polling, including failure path (BUGFIX)
  * - 2026-02-15: Restrict null-origin postMessage to WebView context only (BUGFIX)
@@ -25,14 +28,6 @@ const App = (() => {
   var capacityData = null;
   /** Chart.js timeline chart instance (STORY-009). */
   var timelineChart = null;
-  /**
-   * Configurable origin allowlist for postMessage validation (STORY-014).
-   * The 'null' origin is accepted only when the Flutter WebView bridge is
-   * detected (see handleMessage), preventing sandboxed/data-URI contexts
-   * from injecting payloads in browser mode.
-   * @type {string[]}
-   */
-  var allowedOrigins = [window.location.origin];
   /**
    * Show a user-friendly config error panel in the dashboard.
    * @param {string[]} errors - List of config error messages.
@@ -274,47 +269,6 @@ const App = (() => {
   }
 
   /**
-   * Validate and handle incoming postMessage events from Flutter WebView.
-   * Security: validates origin against configurable allowlist (AC5, STORY-014).
-   * Accepts same-origin and 'null' (Flutter WebView may post with null origin).
-   *
-   * @param {MessageEvent} event - The postMessage event.
-   */
-  function handleMessage(event) {
-    // 1. Validate origin against allowlist
-    var origin = String(event.origin);
-    var allowed =
-      allowedOrigins.indexOf(origin) !== -1 ||
-      // Accept 'null' origin only when Flutter WebView bridge is present
-      (origin === 'null' && window.flutter_inappwebview);
-    if (!allowed) {
-      console.warn('[App] Rejected postMessage from untrusted origin:', event.origin);
-      return;
-    }
-
-    // 2. Validate data is an object with a string type field
-    var data = event.data;
-    if (!data || typeof data !== 'object' || typeof data.type !== 'string') {
-      console.warn('[App] Rejected postMessage with invalid schema:', data);
-      return;
-    }
-
-    // 3. Handle known message types
-    if (data.type === 'token_refresh' || data.type === 'bootstrap') {
-      var tokens = {};
-      if (typeof data.p1_token === 'string' && data.p1_token.trim() !== '') {
-        tokens.p1_token = data.p1_token;
-      }
-      if (typeof data.sungrow_token === 'string' && data.sungrow_token.trim() !== '') {
-        tokens.sungrow_token = data.sungrow_token;
-      }
-      if (Object.keys(tokens).length > 0 && typeof Config !== 'undefined') {
-        Config.updateTokens(tokens);
-      }
-    }
-  }
-
-  /**
    * Dispatch an event to the Flutter app via the InAppWebView bridge.
    * No-op if the bridge is not available (graceful fallback).
    *
@@ -337,9 +291,6 @@ const App = (() => {
    */
   function init() {
     console.log('Dashboard initialized');
-
-    // Listen for postMessage events from Flutter WebView (STORY-014)
-    window.addEventListener('message', handleMessage);
 
     // Parse config from URL parameters (STORY-002)
     if (typeof Config !== 'undefined') {
@@ -427,7 +378,6 @@ const App = (() => {
     showConfigError: showConfigError,
     startPolling: startPolling,
     startEnergyBalancePolling: startEnergyBalancePolling,
-    handleMessage: handleMessage,
     dispatchToFlutter: dispatchToFlutter,
     getStatusIndicator: getStatusIndicator,
     formatLastUpdate: formatLastUpdate,

@@ -1,31 +1,71 @@
 /**
  * Configuration module for Energy Dashboard.
  *
- * Parses URL query parameters and receives tokens via WebView bridge postMessage.
- * Tokens in URL params are scrubbed immediately via history.replaceState (HC-002).
+ * Parses URL query parameters into the dashboard's runtime config: the P1 and
+ * Sungrow base URLs, their device ids, and the mock-mode flag.
+ *
+ * The client never handles API credentials in any form (HC-002). Caddy injects
+ * Bearer tokens server-side and the client makes same-origin requests carrying
+ * only the session cookie, so there is no token to receive, validate, store or
+ * scrub. Base URLs are therefore required to be SAME-ORIGIN with the page: the
+ * session cookie travels with every API request, and a cross-origin base URL
+ * would hand it to a third-party host.
  *
  * STORY-002: URL Parameter Configuration Module
  *
  * CHANGELOG:
+ * - 2026-07-30: Hardening rider — delete the postMessage token bridge
+ *   (updateTokens), the URL token fallback and all token scrubbing; replace
+ *   https://-prefix base-URL validation with a parsed same-origin check
+ *   (RW-M05)
  * - 2026-02-15: Initial implementation (STORY-002)
  */
 
 // eslint-disable-next-line no-unused-vars
 const Config = (() => {
-  // Private state — tokens stored in JS memory only (HC-002)
+  // Private state — the last successfully validated config, or null.
   let currentConfig = null;
 
   const REQUIRED_PARAMS = ['p1_base', 'sungrow_base', 'p1_device_id', 'sungrow_device_id'];
   const URL_PARAMS = ['p1_base', 'sungrow_base'];
-  const TOKEN_PARAMS = ['p1_token', 'sungrow_token'];
 
   /**
-   * Validate that a base URL starts with "https://".
+   * Validate that a base URL resolves to the same origin as the page (HC-002).
+   *
+   * The URL is PARSED and its origin compared for exact equality. String
+   * comparison is deliberately avoided: a scheme-prefix check accepts any
+   * `https://` host, and an origin-prefix check (`startsWith(origin)`) accepts
+   * `http://localhost.evil.com` when the page origin is `http://localhost`.
+   * Both would send the session cookie to an attacker-controlled host.
+   *
+   * Parsing against `window.location.href` also collapses the awkward inputs:
+   * a protocol-relative `//evil.example` resolves to a foreign origin, and a
+   * `javascript:` URL parses to an opaque origin — neither can equal the page
+   * origin, and the explicit scheme allowlist below keeps that true even in a
+   * null-origin (file:/data:) context.
+   *
+   * @param {string} name - Parameter name, used in the error message.
+   * @param {string} value - Candidate base URL.
+   * @returns {string|null} Error message, or null when the URL is same-origin.
    */
   function validateUrl(name, value) {
-    if (!value.startsWith('https://')) {
-      return name + ' must start with https://';
+    var pageOrigin = window.location.origin;
+    var parsed;
+
+    try {
+      parsed = new URL(value, window.location.href);
+    } catch (e) {
+      return name + ' must be a valid URL on the same origin as the dashboard';
     }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return name + ' must be an http(s) URL on the same origin as the dashboard';
+    }
+
+    if (!pageOrigin || pageOrigin === 'null' || parsed.origin !== pageOrigin) {
+      return name + ' must be same-origin with the dashboard host';
+    }
+
     return null;
   }
 
@@ -40,49 +80,20 @@ const Config = (() => {
   }
 
   /**
-   * Scrub token parameters from the URL bar via history.replaceState.
-   */
-  function scrubTokensFromUrl(searchString) {
-    var params = new URLSearchParams(searchString);
-    var hadTokens = false;
-
-    TOKEN_PARAMS.forEach(function (name) {
-      if (params.has(name)) {
-        params.delete(name);
-        hadTokens = true;
-      }
-    });
-
-    if (hadTokens) {
-      var cleanSearch = params.toString();
-      var newUrl = window.location.pathname + (cleanSearch ? '?' + cleanSearch : '');
-      window.history.replaceState(null, '', newUrl);
-    }
-
-    return hadTokens;
-  }
-
-  /**
    * Parse URL parameters from a search string and return a config result.
    *
-   * @param {string} searchString - The URL search string (e.g. "?p1_base=https://...")
+   * On any validation failure the stored config is cleared, so `getConfig()`
+   * can never hand out a rejected base URL (HC-003: the caller renders a
+   * defined error state instead of fetching).
+   *
+   * @param {string} searchString - The URL search string (e.g. "?p1_base=/api/p1")
    * @returns {{ valid: boolean, config?: object, errors?: string[] }}
    */
   function parseConfig(searchString) {
     var params = new URLSearchParams(searchString);
     var errors = [];
 
-    // 1. IMMEDIATELY scrub tokens from URL bar before any validation (HC-002).
-    //    Tokens must never remain in URL, even if config is invalid.
-    var extractedTokens = {};
-    TOKEN_PARAMS.forEach(function (name) {
-      if (params.has(name)) {
-        extractedTokens[name] = params.get(name);
-      }
-    });
-    scrubTokensFromUrl(searchString);
-
-    // 2. Check for missing required parameters
+    // 1. Check for missing required parameters
     REQUIRED_PARAMS.forEach(function (name) {
       if (!params.has(name) || params.get(name).trim() === '') {
         errors.push('Missing required parameter: ' + name);
@@ -91,10 +102,11 @@ const Config = (() => {
 
     // If required params are missing, return early
     if (errors.length > 0) {
+      currentConfig = null;
       return { valid: false, errors: errors };
     }
 
-    // 3. Validate base URLs start with https://
+    // 2. Validate base URLs are same-origin with the page (HC-002)
     URL_PARAMS.forEach(function (name) {
       var error = validateUrl(name, params.get(name));
       if (error) {
@@ -102,7 +114,7 @@ const Config = (() => {
       }
     });
 
-    // 4. Validate device IDs are non-empty strings
+    // 3. Validate device IDs are non-empty strings
     ['p1_device_id', 'sungrow_device_id'].forEach(function (name) {
       var error = validateNonEmpty(name, params.get(name));
       if (error) {
@@ -110,17 +122,7 @@ const Config = (() => {
       }
     });
 
-    // 5. Validate tokens if provided in URL (non-empty when present)
-    TOKEN_PARAMS.forEach(function (name) {
-      if (name in extractedTokens) {
-        var error = validateNonEmpty(name, extractedTokens[name]);
-        if (error) {
-          errors.push(error);
-        }
-      }
-    });
-
-    // 6. Validate mock parameter (must be "true", "false", or absent)
+    // 4. Validate mock parameter (must be "true", "false", or absent)
     var mockRaw = params.get('mock');
     if (mockRaw !== null && mockRaw !== 'true' && mockRaw !== 'false') {
       errors.push('mock must be "true" or "false", got: ' + mockRaw);
@@ -128,10 +130,12 @@ const Config = (() => {
 
     // If validation errors, return early
     if (errors.length > 0) {
+      currentConfig = null;
       return { valid: false, errors: errors };
     }
 
-    // 7. Build config object
+    // 5. Build config object. Only these five fields exist — no credential of
+    //    any kind is read from the URL (HC-002).
     var config = {
       p1_base: params.get('p1_base'),
       sungrow_base: params.get('sungrow_base'),
@@ -140,14 +144,7 @@ const Config = (() => {
       mock: mockRaw === 'true',
     };
 
-    // 8. Attach extracted tokens to config (already scrubbed from URL)
-    TOKEN_PARAMS.forEach(function (name) {
-      if (name in extractedTokens) {
-        config[name] = extractedTokens[name];
-      }
-    });
-
-    // 8. Store in private state
+    // 6. Store in private state
     currentConfig = config;
 
     return { valid: true, config: config };
@@ -156,35 +153,17 @@ const Config = (() => {
   /**
    * Get the current configuration.
    *
-   * @returns {object|null} The current config or null if not yet parsed.
+   * @returns {object|null} The current config or null if not yet parsed
+   *   (or if the last parse was rejected).
    */
   function getConfig() {
     return currentConfig;
-  }
-
-  /**
-   * Update tokens received via WebView bridge postMessage.
-   *
-   * @param {{ p1_token?: string, sungrow_token?: string }} tokens
-   */
-  function updateTokens(tokens) {
-    if (!currentConfig) {
-      return;
-    }
-
-    if (tokens.p1_token) {
-      currentConfig.p1_token = tokens.p1_token;
-    }
-    if (tokens.sungrow_token) {
-      currentConfig.sungrow_token = tokens.sungrow_token;
-    }
   }
 
   // Public API
   return {
     parseConfig: parseConfig,
     getConfig: getConfig,
-    updateTokens: updateTokens,
   };
 })();
 
