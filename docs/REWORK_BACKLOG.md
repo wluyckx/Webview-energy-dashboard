@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>8</done>
-  <progress>27%</progress>
+  <done>9</done>
+  <progress>30%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E01 done (in Hestia, commit 8923ed1) — ADR-017 native /energy route + ADR-018 recharts. DEC-02 (fonts: system stack + tabular-nums; Hestia ships no custom fonts) and DEC-03 (cn(): local helper; no clsx/tailwind-merge exists there) resolved with local evidence. RW-E02 is now the port entry point.</entry>
     <entry date="2026-07-30">RW-C01 done — R1 CLOSED. P1 /v1/series captured via server-held tokens: direction = two unsigned per-bucket magnitudes; avg_power_w proven signed-net-average; month frame is WEEKLY; gaps are omitted buckets. D3 record corrected (fields exist, defect was semantic). Capacity peaks[] doc drift fixed (bucket not ts; 1470 quarter-hours). Real July peak 7359 W vs the staged 4 kW gauge scale. Sungrow drift recorded. Nothing is blocked on an unknown anymore.</entry>
     <entry date="2026-07-30">DEPLOYED — the fixed artifact is live in production, verified by hash chain (local build = image = served bytes). Pre-deploy inspection found R8 live (image from 2026-03-20; every deploy since had shipped nothing) and a months-lying healthcheck — both fixed in f751634. The Operator escalated the destructive container swap per contract instead of improvising; the recreate also restored the en_dashboard alias one Caddy route silently depended on.</entry>
     <entry date="2026-07-30">RW-M06 done — D4 fixed: timeline grid series from the negated conservation identity with null gaps; five mutants killed incl. orientation flip via the executed cross-module bridge. All ADR-012 truthfulness defects (D1–D4) now fixed.</entry>
@@ -455,7 +456,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
 <!-- CLAUDE.md, against Hestia's gates, thresholds, and i18n rule. -->
 <!-- ============================================================ -->
 
-<story id="RW-E01" status="open" complexity="S" lane="E" model_lane="Fable">
+<story id="RW-E01" status="done" complexity="S" lane="E" model_lane="Fable" note="executed 2026-07-30 in Hestia as its Governance Agent, commit 8923ed1: ADR-017 (native route, dark island, cn()=local helper, system fonts + tabular-nums) and ADR-018 (recharts scoped, conditions verbatim). DEC-02 and DEC-03 resolved with Hestia-local evidence; both ADR logs cross-referenced (R11).">
   <title>Hestia ADRs — accept the energy feature and record the Recharts decision</title>
   <dependencies>None</dependencies>
   <acceptance_criteria>
@@ -856,12 +857,12 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     to named FE_design.md tokens, or bind the grid screen to the existing
     import/export tokens. Either way no literal hex survives in component code.
   </decision>
-  <decision id="DEC-02" owner="Architect" needed_by="RW-E01" status="open">
+  <decision id="DEC-02" owner="Architect" needed_by="RW-E01" status="resolved" resolution="2026-07-30, Hestia ADR-017: system font stack with font-variant-numeric tabular-nums; Hestia ships no custom fonts and the type scale/tokens are kept — bounded, reversible FE_design deviation. Google Fonts never ported.">
     Fonts: self-host DM Sans + JetBrains Mono woff2 subsets (est. 60–120 KB) in
     Hestia, or fall back to Hestia's system stack for the energy island. Google
     Fonts CDN links are never ported under either answer (ADR-007).
   </decision>
-  <decision id="DEC-03" owner="Architect" needed_by="RW-E03" status="open">
+  <decision id="DEC-03" owner="Architect" needed_by="RW-E03" status="resolved" resolution="2026-07-30, Hestia ADR-017: local ~10-line cn() helper inside the energy feature; Hestia has no clsx/tailwind-merge and the usage is simple concatenation — two deps for string joining refused.">
     `cn()`: local ~10-line helper, or `clsx` + `tailwind-merge` as accepted
     dependencies. Usage in the energy components is simple concatenation.
   </decision>
