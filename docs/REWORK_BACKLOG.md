@@ -852,7 +852,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
 <!-- ============================================================ -->
 
 <decisions>
-  <decision id="DEC-01" owner="Architect" needed_by="RW-E02" status="open">
+  <decision id="DEC-01" owner="Architect" needed_by="RW-E02" status="resolved" resolution="2026-07-30: PROMOTED to named FE_design tokens --grid-detail-import #8B7BF0 / --grid-detail-export #00C9A7, scoped to the grid-detail screen. The off-palette choice was deliberate design intent (the Lovable authoring comment says so); binding to the standard import/export tokens would erase it. No literal hex survives in component code either way.">
     Grid-detail off-palette colours: promote import `#8B7BF0` / export `#00C9A7`
     to named FE_design.md tokens, or bind the grid screen to the existing
     import/export tokens. Either way no literal hex survives in component code.

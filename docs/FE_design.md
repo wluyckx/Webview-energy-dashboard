@@ -72,6 +72,8 @@ Think: Tesla Powerwall app meets a Dieter Rams–designed instrument panel. Rest
 | `--battery-discharge` | `#A29BFE` | Battery discharging — soft lavender |
 | `--grid-import` | `#E17055` | Importing from grid — warm coral/red |
 | `--grid-export` | `#00B894` | Exporting to grid — fresh green |
+| `--grid-detail-import` | `#8B7BF0` | Grid-detail screen only — deliberate off-palette import purple (promoted from the Lovable redesign, DEC-01 resolved 2026-07-30) |
+| `--grid-detail-export` | `#00C9A7` | Grid-detail screen only — deliberate off-palette export emerald (DEC-01) |
 | `--home` | `#DFE6E9` | Home consumption — neutral light grey |
 
 ### Status & Accent
