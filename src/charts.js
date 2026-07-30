@@ -5,6 +5,11 @@
  * data: solar production, battery charge/discharge, grid import/export,
  * and home consumption. Data sourced from Sungrow /v1/series?frame=day.
  *
+ * The Grid series is DERIVED from the conservation identity over the reliable
+ * fields (avg_pv_power_w − avg_load_power_w − avg_battery_power_w), export
+ * positive; it is never read from avg_export_power_w, which is 0 on every real
+ * bucket from this firmware (HC-006) — reading it was defect D4.
+ *
  * Also renders a monthly overview grouped bar chart showing daily production
  * and consumption in kWh. Data sourced from Sungrow /v1/series?frame=month.
  *
@@ -12,6 +17,7 @@
  * STORY-011: Monthly Overview Bar Chart
  *
  * CHANGELOG:
+ * - 2026-07-30: Grid series from the conservation identity (negated), null gaps for malformed buckets; never the dead avg_export_power_w (RW-M06)
  * - 2026-02-15: Add scriptable segment colors for battery charge/discharge and grid import/export (BUGFIX)
  * - 2026-02-15: Add CDN fallback placeholder when Chart.js unavailable (BUGFIX)
  * - 2026-02-15: Initial implementation (STORY-009)
@@ -44,7 +50,10 @@ var Charts = (function () {
    * Transform Sungrow series day data into Chart.js dataset format.
    *
    * Converts hourly buckets into time-string labels and four datasets
-   * (Solar, Battery, Grid, Home) with values in kW.
+   * (Solar, Battery, Grid, Home) with values in kW. Solar, Battery and Home
+   * are the raw fields in kW; Grid is derived (see the identity at the push
+   * site below) and is null for any bucket whose identity fields are not all
+   * finite.
    *
    * @param {Object} seriesData - Sungrow series day response with .series array.
    * @returns {{ labels: string[], datasets: Object[] }} Chart.js-compatible data.
@@ -67,7 +76,37 @@ var Charts = (function () {
       // Convert W to kW
       solarData.push(bucket.avg_pv_power_w / 1000);
       batteryData.push(bucket.avg_battery_power_w / 1000);
-      gridData.push(bucket.avg_export_power_w / 1000);
+
+      // Grid is DERIVED, never read. The conservation identity used by
+      // computeBalance (grid = load − pv + battery, positive = import) is
+      // negated here to match this chart's export-positive orientation:
+      //   grid_kW = (pv − load − battery) / 1000
+      // so a surplus plots up as export and a deficit plots down as import;
+      // the two modules therefore agree in magnitude and oppose in sign by
+      // construction (RW-M03 / ADR-012 maintenance item 4a).
+      //
+      // avg_export_power_w must never be read: it is the series average of the
+      // field that is always 0 on this firmware (HC-006, Sign Convention
+      // Reference). Plotting it was defect D4 — the production grid line was
+      // flat 0 all day.
+      //
+      // The identity needs all three fields at once, so a bucket missing any
+      // of them yields null rather than NaN or a fabricated 0 (HC-003):
+      // Chart.js renders a gap (spanGaps is not enabled). Number.isFinite
+      // semantics also mean a numeric string is NOT coerced into a valid
+      // reading (AC10g/AC6b precedent).
+      if (
+        Number.isFinite(bucket.avg_pv_power_w) &&
+        Number.isFinite(bucket.avg_load_power_w) &&
+        Number.isFinite(bucket.avg_battery_power_w)
+      ) {
+        gridData.push(
+          (bucket.avg_pv_power_w - bucket.avg_load_power_w - bucket.avg_battery_power_w) / 1000
+        );
+      } else {
+        gridData.push(null);
+      }
+
       homeData.push(bucket.avg_load_power_w / 1000);
     });
 
