@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>9</done>
-  <progress>30%</progress>
+  <done>10</done>
+  <progress>33%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E02 done (Hestia STORY-089, PR #3) — the dark island design layer lands: scoped tokens, utilities, motion with exact timings, island-scoped reduced-motion. Phase 14 defined in Hestia (STORY-089..109 mapping RW-E02..E22). DEC-01 resolved: grid-detail colours promoted to named FE_design tokens.</entry>
     <entry date="2026-07-30">RW-E01 done (in Hestia, commit 8923ed1) — ADR-017 native /energy route + ADR-018 recharts. DEC-02 (fonts: system stack + tabular-nums; Hestia ships no custom fonts) and DEC-03 (cn(): local helper; no clsx/tailwind-merge exists there) resolved with local evidence. RW-E02 is now the port entry point.</entry>
     <entry date="2026-07-30">RW-C01 done — R1 CLOSED. P1 /v1/series captured via server-held tokens: direction = two unsigned per-bucket magnitudes; avg_power_w proven signed-net-average; month frame is WEEKLY; gaps are omitted buckets. D3 record corrected (fields exist, defect was semantic). Capacity peaks[] doc drift fixed (bucket not ts; 1470 quarter-hours). Real July peak 7359 W vs the staged 4 kW gauge scale. Sungrow drift recorded. Nothing is blocked on an unknown anymore.</entry>
     <entry date="2026-07-30">DEPLOYED — the fixed artifact is live in production, verified by hash chain (local build = image = served bytes). Pre-deploy inspection found R8 live (image from 2026-03-20; every deploy since had shipped nothing) and a months-lying healthcheck — both fixed in f751634. The Operator escalated the destructive container swap per contract instead of improvising; the recreate also restored the en_dashboard alias one Caddy route silently depended on.</entry>
@@ -469,7 +470,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Architecture.md E1. Answers open questions 5 and the cn() note in Tech Stack Scope B.</notes>
 </story>
 
-<story id="RW-E02" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E02" status="done" complexity="M" lane="E" model_lane="Fable" note="executed 2026-07-30 in Hestia as STORY-089 (PR #3): scoped .energy design layer, 22 tokens hex-identical incl. DEC-01 pair, nine utilities, exact donor timings with en- prefixed keyframes, reduced-motion collapse scoped to the island (the donor global collapse deliberately not ported). AC1-AC8 hold; leak tests static-analysis based; utility bridging deferred to RW-E03/STORY-090 by design.">
   <title>Port the design layer, scoped so the dark island cannot leak</title>
   <dependencies>RW-E01</dependencies>
   <acceptance_criteria>
