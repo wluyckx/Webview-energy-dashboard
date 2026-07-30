@@ -806,6 +806,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <ac id="AC4">The R1 history transferred: what was guessed, what it broke (D3, `GridBucket`), and what was captured.</ac>
     <ac id="AC5">Coverage ≥80% on the ported domain logic.</ac>
     <ac id="AC6">Hestia's documentation is independent of this repo — a reader with no access to Webview-energy-dashboard can maintain the feature.</ac>
+    <ac id="AC7">**The process transfers, not just the domain knowledge** (added 2026-07-30): the governance lessons this repo measured are carried into Hestia's CLAUDE.md as candidate amendments, with their evidence — the contract evidence rule (five defects, each settleable by one command), spec-first routing of worker findings (SELF-REVIEW/DEVIATIONS/surprises produced the strongest tests of the pipeline), mandatory mutation testing for domain stories (it alone killed the almost-right security fix and two fixture blind spots), and the no-coercion precedent (AC10g/AC6b: an unobserved shape must not render as data). Hestia's Governor decides adoption; this AC only guarantees the lessons arrive with their receipts instead of dying with the archive.</ac>
   </acceptance_criteria>
 </story>
 
