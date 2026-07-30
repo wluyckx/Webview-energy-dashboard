@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>12</done>
-  <progress>40%</progress>
+  <done>19</done>
+  <progress>63%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E05 through RW-E11 done in one auto-mode run (Hestia STORY-092..098, PRs #6-#12) — the SCREENS-ON-MOCK MILESTONE: the native island renders end-to-end at /energy/native, code-split (7.4 KB gz measured), with the donor anatomy, i18n EN/NL/FR throughout, and every port-time correction applied (tokenised hexes, reduced-motion flash suppression, neutral balanced accent, the balance card consuming rather than recomputing). Next tier: live data (RW-E12..E14).</entry>
     <entry date="2026-07-30">RW-E04 done (Hestia STORY-091, PR #5) — the domain lib lands React-free with the corrected sign conventions and captured types; the D1 invariant now exists in both suites, closing the both-suites requirement early. 35 tests RED-first, green first pass.</entry>
     <entry date="2026-07-30">RW-E03 done (Hestia STORY-090, PR #4) — primitives ported with i18n; the scoped-cascade colour bridge lands: 19 new @theme names inert outside the island, two colliding names cascade-overridden under .energy. Donor class names survive near-verbatim.</entry>
     <entry date="2026-07-30">RW-E02 done (Hestia STORY-089, PR #3) — the dark island design layer lands: scoped tokens, utilities, motion with exact timings, island-scoped reduced-motion. Phase 14 defined in Hestia (STORY-089..109 mapping RW-E02..E22). DEC-01 resolved: grid-detail colours promoted to named FE_design tokens.</entry>
@@ -523,7 +524,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Architecture.md Testing Strategy "Ported"; the D1/D2 pins are shared with RW-M02/RW-M03 by design — double duty, not duplicated work.</notes>
 </story>
 
-<story id="RW-E05" status="open" complexity="M" lane="E" model_lane="Opus">
+<story id="RW-E05" status="done" complexity="M" lane="E" model_lane="Opus" note="Hestia STORY-092 (PR #6): one-truth mock cross-consistent by construction, captured-contract shapes, EnergyTransport seam, hook shape with confirmed-later thresholds; view models and drop simulator deliberately dead">
   <title>Port the mock layer and the data-hook shape</title>
   <dependencies>RW-E04</dependencies>
   <acceptance_criteria>
@@ -537,7 +538,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>lovable/src/hooks/useEnergyData.tsx carries the PORT NOTE; lovable/src/lib/mock-energy.ts is the source.</notes>
 </story>
 
-<story id="RW-E06" status="open" complexity="L" lane="E" model_lane="Fable">
+<story id="RW-E06" status="done" complexity="L" lane="E" model_lane="Fable" note="Hestia STORY-093 (PR #7): DP-003 matrix pinned incl. the D1 combination; icons tokenised (F10 fixed); flash suppressed under reduced motion (AC3 upgrade over the staged code)">
   <title>Power flow hero — inline SVG (ADR-008 realized)</title>
   <dependencies>RW-E03, RW-E04</dependencies>
   <acceptance_criteria>
@@ -552,7 +553,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>ADR-008 survives unchanged from the morning revision — this story is that ADR realized in Hestia.</notes>
 </story>
 
-<story id="RW-E07" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E07" status="done" complexity="M" lane="E" model_lane="Fable" note="Hestia STORY-094 (PR #8): three states + i18n; thresholds 12s/40s CONFIRMED final as design record">
   <title>Status bar, offline banner, and the three mandated states</title>
   <dependencies>RW-E03, RW-E05</dependencies>
   <acceptance_criteria>
@@ -566,7 +567,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E08" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E08" status="done" complexity="M" lane="E" model_lane="Fable" note="Hestia STORY-095 (PR #9): sign accents both directions; the 0-W import-colour ambiguity resolved to a neutral balanced accent; shadows tokenised; react-router links">
   <title>KPI strip — four cards</title>
   <dependencies>RW-E03, RW-E05</dependencies>
   <acceptance_criteria>
@@ -580,7 +581,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E09" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E09" status="done" complexity="M" lane="E" model_lane="Fable" note="Hestia STORY-096 (PR #10): the card consumes computeBalance and recomputes nothing — statically enforced; D2 pinned at component level">
   <title>Energy balance card — today</title>
   <dependencies>RW-E03, RW-E04</dependencies>
   <acceptance_criteria>
@@ -593,7 +594,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E10" status="open" complexity="S" lane="E" model_lane="Fable">
+<story id="RW-E10" status="done" complexity="S" lane="E" model_lane="Fable" note="Hestia STORY-097 (PR #11): deliberate coming-soon, tokenised, i18n">
   <title>Cost tracking stub</title>
   <dependencies>RW-E03</dependencies>
   <acceptance_criteria>
@@ -604,7 +605,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Belgian tariff API integration stays in the parking lot (no API key).</notes>
 </story>
 
-<story id="RW-E11" status="open" complexity="M" lane="E" model_lane="Opus">
+<story id="RW-E11" status="done" complexity="M" lane="E" model_lane="Opus" note="Hestia STORY-098 (PR #12): /energy/native lazy island route, mock-fed, composed per the donor anatomy; energy CSS+JS ship as their own chunks (7.4 KB gz measured); production /energy keeps the iframe until cutover (STORY-109) — recorded cutover-safety deviation from the donor exit criterion">
   <title>Route wiring, code-split, and i18n extraction</title>
   <dependencies>RW-E06, RW-E07, RW-E08, RW-E09, RW-E10</dependencies>
   <acceptance_criteria>
