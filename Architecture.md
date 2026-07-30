@@ -293,6 +293,7 @@ Reference or HC-006 forbids:
 | D1 | `computeFlows` derives solar→grid from Sungrow `export_power_w`, which is **always 0 on this firmware** | `src/power-flow.js:546` | The solar→grid flow line never renders; the hero diagram silently hides all export activity |
 | D2 | Energy balance derives both export and import from `bucket.avg_export_power_w` — the same dead field | `src/energy-balance.js:37–41` | Export and import totals read 0.0 kWh; **self-consumption and self-sufficiency are pinned at 100%** — confidently wrong numbers on a money-relevant card |
 | D3 | P1 card reads invented series fields `energy_import_kwh` / `avg_power_w` from P1 buckets (the R1 contract was guessed) | `src/p1-card.js:350–365` | Day/Month/Year tabs render NaN bars |
+| D4 | Timeline chart's grid series reads `bucket.avg_export_power_w` — the series average of the always-0 field | `src/charts.js:70` | The timeline's grid line is flat 0 in production; grid activity silently hidden (D1's failure mode). **Recorded 2026-07-30 while drafting RW-M02** — missed by the original defect table. Disposition deliberately deferred until RW-M03 settles the P1-consistent bucket derivation, then decided as an ADR-012 amendment (fix in place with the same formula, or accept until decommission). The Hestia timeline is unaffected: its grid series is already governed by R13/F1 |
 
 **Decision: D1 and D2 are fixed in place now; D3 is gated honestly, not
 fixed.** Rationale (full text in ADR-012):

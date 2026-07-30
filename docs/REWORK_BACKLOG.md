@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>29</total_stories>
-  <done>3</done>
-  <progress>10%</progress>
+  <done>4</done>
+  <progress>14%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-M02 done — D1 fixed: solarToGrid from P1 signed power_w with a non-finite guard; mock dead-field fiction zeroed. 17 new tests incl. the D1 pin; direction-flip and dead-field mutants killed; R7 closed. New defect D4 (charts.js:70, same field family) recorded in Architecture.md, disposition deferred to the RW-M03 derivation.</entry>
     <entry date="2026-07-30">RW-M05 done — bridge and URL-token fallback deleted, base-URL validation now parsed same-origin. R3 and R6 closed by removal. Verifier PASS across 24 attack classes; two mutation tests killed, the second by exactly the one test written for the prefix-bypass class.</entry>
     <entry date="2026-07-30">RW-C02 done — 19 files staged locally, R12 closed. Staging surfaced 12 findings in the reference (lovable/MANIFEST.md F1–F12); the consequential ones are now ACs on RW-E16/E17/E18, and F1 is recorded as new risk R13.</entry>
     <entry date="2026-07-30">RW-M01 done — all four maintenance-lane gates green on main for the first time (lint 0/0, format clean, 265 tests, 130.7 KB build).</entry>
@@ -213,7 +214,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </notes>
 </story>
 
-<story id="RW-M02" status="open" complexity="M" tdd="mandatory" lane="M" model_lane="Fable">
+<story id="RW-M02" status="done" complexity="M" tdd="mandatory" lane="M" model_lane="Fable" log="docs/stories/RW-M02.md">
   <title>D1 — derive solar→grid flow from P1 power_w, not Sungrow export_power_w</title>
   <dependencies>RW-M01</dependencies>
   <description>
