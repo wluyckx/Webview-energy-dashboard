@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>19</done>
-  <progress>63%</progress>
+  <done>22</done>
+  <progress>73%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E12..E14 done (Hestia STORY-099..101, PRs #13-#15) — the LIVE-DATA TIER: same-origin schema-validating client (HC-002 as code), per-source scheduler with visibility gating + backoff, cold-open mock fallback framed offline. Next: charts (RW-E15 foundation adds recharts + pins the real bundle budget).</entry>
     <entry date="2026-07-30">RW-E05 through RW-E11 done in one auto-mode run (Hestia STORY-092..098, PRs #6-#12) — the SCREENS-ON-MOCK MILESTONE: the native island renders end-to-end at /energy/native, code-split (7.4 KB gz measured), with the donor anatomy, i18n EN/NL/FR throughout, and every port-time correction applied (tokenised hexes, reduced-motion flash suppression, neutral balanced accent, the balance card consuming rather than recomputing). Next tier: live data (RW-E12..E14).</entry>
     <entry date="2026-07-30">RW-E04 done (Hestia STORY-091, PR #5) — the domain lib lands React-free with the corrected sign conventions and captured types; the D1 invariant now exists in both suites, closing the both-suites requirement early. 35 tests RED-first, green first pass.</entry>
     <entry date="2026-07-30">RW-E03 done (Hestia STORY-090, PR #4) — primitives ported with i18n; the scoped-cascade colour bridge lands: 19 new @theme names inert outside the island, two colliding names cascade-overridden under .energy. Donor class names survive near-verbatim.</entry>
@@ -619,7 +620,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E12" status="open" complexity="L" lane="E" model_lane="Opus">
+<story id="RW-E12" status="done" complexity="L" lane="E" model_lane="Opus" note="Hestia STORY-099 (PR #13): same-origin client, hand-rolled schema validation, atomic per source, zero token surface (statically enforced), structural same-origin (no base URL)">
   <title>Same-origin fetch client with response schema validation</title>
   <dependencies>RW-E05</dependencies>
   <description>
@@ -638,7 +639,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E13" status="open" complexity="L" lane="E" model_lane="Opus">
+<story id="RW-E13" status="done" complexity="L" lane="E" model_lane="Opus" note="Hestia STORY-100 (PR #14): per-source scheduler — 5s/60s/hourly cadences, visibility gating, per-source exponential backoff with reset, in-flight guard, independence. The donor PORT-NOTE gaps closed">
   <title>Cadence, visibility gating, and per-source backoff</title>
   <dependencies>RW-E12</dependencies>
   <description>
@@ -657,7 +658,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E14" status="open" complexity="M" lane="E" model_lane="Opus">
+<story id="RW-E14" status="done" complexity="M" lane="E" model_lane="Opus" note="Hestia STORY-101 (PR #15): cold-open mock fallback (whole-snapshot coherent seed) framed honestly as offline; mid-session real staleness stays stale; success-cadence/failure-backoff split so a dead 1h capacity source still recovers in minutes">
   <title>Cache-on-failure and staleness metadata</title>
   <dependencies>RW-E13</dependencies>
   <acceptance_criteria>
