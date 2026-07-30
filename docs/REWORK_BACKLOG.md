@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>5</done>
-  <progress>17%</progress>
+  <done>6</done>
+  <progress>20%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-M04 done — D3 gated honestly: Day/Month/Year render a defined unavailable state naming RW-C01 as the unlock; computeDeltas and all four invented-field reads deleted; p1-card gains its first test file (0→92% stmts); export leg sign-pinned after mutation testing exposed coincidental coverage.</entry>
     <entry date="2026-07-30">RW-M03 done — D2 fixed: import/export from the conservation identity over documented fields; malformed buckets skipped whole; five mutants killed; self-sufficiency leaves 100% for the first time. Two Spec Author escalations upheld, incl. catching a false contract claim.</entry>
     <entry date="2026-07-30">RW-M02 done — D1 fixed: solarToGrid from P1 signed power_w with a non-finite guard; mock dead-field fiction zeroed. 17 new tests incl. the D1 pin; direction-flip and dead-field mutants killed; R7 closed. New defect D4 (charts.js:70, same field family) recorded in Architecture.md, disposition deferred to the RW-M03 derivation.</entry>
     <entry date="2026-07-30">RW-M05 done — bridge and URL-token fallback deleted, base-URL validation now parsed same-origin. R3 and R6 closed by removal. Verifier PASS across 24 attack classes; two mutation tests killed, the second by exactly the one test written for the prefix-bypass class.</entry>
@@ -272,7 +273,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Reference: ADR-012 maintenance item 2, defect table D2. AC7 is the real risk in this story — flag it in the Story Contract, not after.</notes>
 </story>
 
-<story id="RW-M04" status="open" complexity="S" tdd="mandatory" lane="M" model_lane="Fable">
+<story id="RW-M04" status="done" complexity="M" tdd="mandatory" lane="M" model_lane="Fable" log="docs/stories/RW-M04.md">
   <title>D3 — replace NaN bars with an honest unavailable state</title>
   <dependencies>RW-M01</dependencies>
   <description>
@@ -806,6 +807,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <ac id="AC4">The R1 history transferred: what was guessed, what it broke (D3, `GridBucket`), and what was captured.</ac>
     <ac id="AC5">Coverage ≥80% on the ported domain logic.</ac>
     <ac id="AC6">Hestia's documentation is independent of this repo — a reader with no access to Webview-energy-dashboard can maintain the feature.</ac>
+    <ac id="AC7">**The process transfers, not just the domain knowledge** (added 2026-07-30): the governance lessons this repo measured are carried into Hestia's CLAUDE.md as candidate amendments, with their evidence — the contract evidence rule (five defects, each settleable by one command), spec-first routing of worker findings (SELF-REVIEW/DEVIATIONS/surprises produced the strongest tests of the pipeline), mandatory mutation testing for domain stories (it alone killed the almost-right security fix and two fixture blind spots), and the no-coercion precedent (AC10g/AC6b: an unobserved shape must not render as data). Hestia's Governor decides adoption; this AC only guarantees the lessons arrive with their receipts instead of dying with the archive.</ac>
   </acceptance_criteria>
 </story>
 
