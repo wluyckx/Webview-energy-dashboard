@@ -4,6 +4,8 @@
  * in a diamond/cross arrangement with connection lines between them.
  *
  * CHANGELOG:
+ * - 2026-07-30: Derive solarToGrid from P1 signed power_w, never Sungrow export_power_w;
+ *   guard non-finite power_w to 0 so the flow never renders NaN (RW-M02)
  * - 2026-03-16: Update hero value under flow diagram with home consumption
  * - 2026-02-15: Add computeFlows, formatPower, updateNodeValues, updateAllFlows (STORY-007)
  * - 2026-02-15: Add animated flow line helpers (STORY-006)
@@ -542,8 +544,18 @@ const PowerFlow = (() => {
    */
   function computeFlows(p1Data, sungrowData) {
     var solarToHome = Math.min(sungrowData.pv_power_w, sungrowData.load_power_w);
-    var solarToGrid =
-      sungrowData.export_power_w > 0 && sungrowData.pv_power_w > 0 ? sungrowData.export_power_w : 0;
+    // Export magnitude comes from the P1 meter's signed power_w, which is the
+    // authoritative source for grid direction (Architecture.md, Sign Convention
+    // Reference): negative power_w = exporting. The Sungrow inverter's
+    // export_power_w is always 0 on this WiNet-S firmware and must never be
+    // read (HC-006) — reading it is what hid every export flow (defect D1).
+    // No pv_power_w gate: in the rare night-export edge (battery discharging
+    // past load) the export renders on the solar->grid edge, the only export
+    // edge the diagram has. Attribution is approximate there; the direction is
+    // correct, which is what must never be wrong.
+    // A non-finite power_w (absent, undefined, NaN, wrong type) degrades to 0
+    // rather than propagating NaN into the diagram (HC-003: never NaN as data).
+    var solarToGrid = Number.isFinite(p1Data.power_w) ? Math.max(0, -p1Data.power_w) : 0;
     var solarToBattery =
       sungrowData.battery_power_w > 0
         ? Math.max(0, sungrowData.pv_power_w - solarToHome - solarToGrid)

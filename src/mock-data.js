@@ -11,6 +11,7 @@
  * STORY-004: Mock Data System
  *
  * CHANGELOG:
+ * - 2026-07-30: Pin realtime export_power_w to 0 — dead field on this firmware (RW-M02)
  * - 2026-02-15: Initial implementation (STORY-004)
  */
 
@@ -72,7 +73,10 @@ const MockData = (() => {
       battery_soc_pct: 85.0,
       battery_temp_c: 28.5,
       load_power_w: 2700.0,
-      export_power_w: 750.5,
+      // Always 0 on this inverter's WiNet-S firmware (HC-006). Kept in the
+      // shape only because the real API returns the field; never read as data
+      // — grid direction comes from P1 power_w (RW-M02).
+      export_power_w: 0,
       sample_count: 1,
     };
   }

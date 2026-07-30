@@ -7,6 +7,15 @@
  * Also validates computeFlows data mapping and formatPower formatting.
  *
  * CHANGELOG:
+ * - 2026-07-30: RW-M02 AC10 — add failing tests pinning solarToGrid === 0
+ *   (never NaN) for non-finite p1.power_w (absent/undefined/NaN/wrong-type/
+ *   null), per HC-003 (never render NaN as data); closes the gap the
+ *   Builder's self-review found in Math.max(0, -p1Data.power_w) (Spec Author)
+ * - 2026-07-30: RW-M02 — add failing tests pinning solarToGrid =
+ *   max(0, -p1.power_w) (D1 fix); annotate the two pre-existing tests that
+ *   interact with the change as non-discriminating / dead-field-independence
+ *   (Spec Author; production code and this test file's ownership are
+ *   separate per the Story Contract)
  * - 2026-02-15: computeFlows and formatPower tests (STORY-007)
  * - 2026-02-15: Flow animation helper tests (STORY-006)
  * - 2026-02-15: Initial layout tests (STORY-005)
@@ -362,6 +371,12 @@ describe('PowerFlow', () => {
     });
 
     test('export when solar producing maps to solarToGrid', () => {
+      // NON-DISCRIMINATING (RW-M02): export_power_w (750) here equals the
+      // magnitude of -power_w (750), so this fixture passes under both the
+      // old sungrow.export_power_w-gated formula and the new
+      // max(0, -p1.power_w) formula. Retained for regression coverage; does
+      // NOT count as RW-M02 RED evidence — see the 'RW-M02:' describe block
+      // below for the tests that actually discriminate.
       var p1 = { power_w: -750, import_power_w: 0 };
       var sungrow = {
         pv_power_w: 3450,
@@ -375,6 +390,11 @@ describe('PowerFlow', () => {
     });
 
     test('no export when solar not producing (solarToGrid = 0)', () => {
+      // RW-M02 AC3 (dead-field independence): power_w=0 ⇒ solarToGrid=0
+      // under the new max(0, -power_w) formula regardless of export_power_w
+      // (=100 here, contradicting a genuine zero-export state). This test
+      // used to pin the old pv_power_w>0 gate's behaviour; it now survives
+      // as proof the dead field cannot influence the result in this branch.
       var p1 = { power_w: 0, import_power_w: 0 };
       var sungrow = {
         pv_power_w: 0,
@@ -385,6 +405,357 @@ describe('PowerFlow', () => {
       };
       var flows = PowerFlow.computeFlows(p1, sungrow);
       expect(flows.solarToGrid).toBe(0);
+    });
+
+    // ------------------------------------------------------------------
+    // RW-M02 (D1 fix): solarToGrid must derive from P1's authoritative,
+    // signed power_w — never from Sungrow export_power_w, which is always
+    // 0 on the real WiNet-S firmware (Architecture.md, Sign Convention
+    // Reference). Fixtures below set export_power_w: 0 where the AC doesn't
+    // otherwise specify it, matching that real firmware behaviour — this is
+    // the physically accurate fixture, not an arbitrary choice.
+    //
+    // Target formula (Architect ruling): solarToGrid = max(0, -p1.power_w)
+    // ------------------------------------------------------------------
+    describe('RW-M02: solarToGrid = max(0, -power_w)', () => {
+      test('AC1: D1 pin — p1.power_w=-2000, sungrow.export_power_w=0 ⇒ solarToGrid === 2000', () => {
+        var p1 = { power_w: -2000, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 3000,
+          load_power_w: 800,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(2000);
+      });
+
+      test('AC2a: power_w=-1 ⇒ solarToGrid === 1', () => {
+        var p1 = { power_w: -1, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(1);
+      });
+
+      test('AC2b: power_w=0 ⇒ solarToGrid === 0', () => {
+        // GREEN-today: old and new formulas both yield 0 (export_power_w: 0).
+        var p1 = { power_w: 0, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC2c: power_w=+800 ⇒ solarToGrid === 0', () => {
+        // GREEN-today: old and new formulas both yield 0 (export_power_w: 0).
+        var p1 = { power_w: 800, import_power_w: 800 };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC2d: power_w=-3200 with pv=4000, load=600, battery=+200 ⇒ solarToGrid === 3200', () => {
+        var p1 = { power_w: -3200, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 4000,
+          load_power_w: 600,
+          battery_power_w: 200,
+          battery_soc_pct: 60,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(3200);
+      });
+
+      test('AC3: dead-field independence — export_power_w in {0, 9999, absent} return deep-equal results', () => {
+        var p1 = { power_w: -900, import_power_w: 0 };
+        var base = {
+          pv_power_w: 2500,
+          load_power_w: 1000,
+          battery_power_w: 0,
+          battery_soc_pct: 55,
+        };
+
+        var flowsZero = PowerFlow.computeFlows(p1, Object.assign({}, base, { export_power_w: 0 }));
+        var flowsHuge = PowerFlow.computeFlows(
+          p1,
+          Object.assign({}, base, { export_power_w: 9999 })
+        );
+        // export_power_w intentionally omitted here: undefined/absent.
+        var flowsAbsent = PowerFlow.computeFlows(p1, Object.assign({}, base));
+
+        expect(flowsZero.solarToGrid).toBe(900);
+        expect(flowsZero).toEqual(flowsHuge);
+        expect(flowsZero).toEqual(flowsAbsent);
+      });
+
+      test('AC3b: dead-field independence with battery charging — export_power_w in {0, 9999} return deep-equal results, solarToBattery===500 in both', () => {
+        // Closes the charging-branch blind spot found by mutation testing
+        // (RW-M02 Verification): a mutant reading export_power_w only inside
+        // the battery_power_w>0 branch (folded into solarToBattery) survived
+        // AC3 because every charging fixture there used export_power_w: 0.
+        var p1 = { power_w: -1700, import_power_w: 0 };
+        var base = {
+          pv_power_w: 3000,
+          load_power_w: 800,
+          battery_power_w: 500,
+          battery_soc_pct: 60,
+        };
+
+        var flowsZero = PowerFlow.computeFlows(p1, Object.assign({}, base, { export_power_w: 0 }));
+        var flowsHuge = PowerFlow.computeFlows(
+          p1,
+          Object.assign({}, base, { export_power_w: 9999 })
+        );
+
+        expect(flowsZero.solarToBattery).toBe(500);
+        expect(flowsHuge.solarToBattery).toBe(500);
+        expect(flowsZero).toEqual(flowsHuge);
+      });
+
+      test('AC4a: exporting (power_w<0, import_power_w=0) ⇒ gridToHome===0 && solarToGrid>0', () => {
+        var p1 = { power_w: -1500, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 3000,
+          load_power_w: 1500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.gridToHome).toBe(0);
+        expect(flows.solarToGrid).toBeGreaterThan(0);
+        expect(flows.gridToHome > 0 && flows.solarToGrid > 0).toBe(false);
+      });
+
+      test('AC4b: importing (power_w>0, import_power_w===power_w) ⇒ solarToGrid===0 && gridToHome>0', () => {
+        // GREEN-today: unaffected by the fix — old and new formulas both
+        // yield solarToGrid=0 here (export_power_w: 0, power_w positive).
+        var p1 = { power_w: 800, import_power_w: 800 };
+        var sungrow = {
+          pv_power_w: 0,
+          load_power_w: 800,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(0);
+        expect(flows.gridToHome).toBeGreaterThan(0);
+        expect(flows.gridToHome > 0 && flows.solarToGrid > 0).toBe(false);
+      });
+
+      test('AC5a: battery discharging (battery_power_w<0) ⇒ batteryToHome===|battery_power_w| && solarToBattery===0', () => {
+        // GREEN-today: the battery_power_w<0 branch is untouched by the fix.
+        var p1 = { power_w: 200, import_power_w: 200 };
+        var sungrow = {
+          pv_power_w: 500,
+          load_power_w: 1700,
+          battery_power_w: -1000,
+          battery_soc_pct: 40,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.batteryToHome).toBe(1000);
+        expect(flows.solarToBattery).toBe(0);
+      });
+
+      test('AC5b: battery charging (battery_power_w>0) ⇒ solarToBattery===max(0, pv-solarToHome-solarToGrid) && batteryToHome===0', () => {
+        var p1 = { power_w: -600, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 2500,
+          load_power_w: 1000,
+          battery_power_w: 900,
+          battery_soc_pct: 65,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        // solarToHome = min(2500,1000) = 1000; solarToGrid = max(0,600) = 600;
+        // solarToBattery = max(0, 2500 - 1000 - 600) = 900
+        expect(flows.solarToBattery).toBe(900);
+        expect(flows.batteryToHome).toBe(0);
+      });
+
+      test('AC6: conservation with real export — panel output fully attributed', () => {
+        var p1 = { power_w: -1700, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 3000,
+          load_power_w: 800,
+          battery_power_w: 500,
+          battery_soc_pct: 70,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToHome).toBe(800);
+        expect(flows.solarToGrid).toBe(1700);
+        expect(flows.solarToBattery).toBe(500);
+        expect(flows.solarToHome + flows.solarToGrid + flows.solarToBattery).toBe(
+          sungrow.pv_power_w
+        );
+      });
+
+      test('AC7: unchanged surface — solarToHome, gridToHome, and passthrough fields', () => {
+        // GREEN-today: none of these fields are touched by the fix.
+        var p1 = { power_w: 600, import_power_w: 600 };
+        var sungrow = {
+          pv_power_w: 1200,
+          load_power_w: 1800,
+          battery_power_w: -50,
+          battery_soc_pct: 33,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToHome).toBe(Math.min(sungrow.pv_power_w, sungrow.load_power_w));
+        expect(flows.gridToHome).toBe(p1.import_power_w);
+        expect(flows.solarTotal).toBe(sungrow.pv_power_w);
+        expect(flows.homeTotal).toBe(sungrow.load_power_w);
+        expect(flows.gridTotal).toBe(p1.power_w);
+        expect(flows.batterySoc).toBe(sungrow.battery_soc_pct);
+        expect(flows.batteryPower).toBe(sungrow.battery_power_w);
+      });
+
+      test('AC8: night-export edge — power_w=-500, pv_power_w=0 ⇒ solarToGrid === 500', () => {
+        // The old pv_power_w>0 gate hides export whenever solar isn't
+        // producing; the direction is real (e.g. battery discharging past
+        // load overnight) and must render, not be dodged by the gate.
+        var p1 = { power_w: -500, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 0,
+          load_power_w: 300,
+          battery_power_w: -800,
+          battery_soc_pct: 20,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(500);
+      });
+
+      // ------------------------------------------------------------------
+      // AC10: solarToGrid must degrade to 0 — never NaN — for any
+      // non-finite p1.power_w. Math.max(0, -p1Data.power_w) alone yields
+      // NaN when power_w is absent/undefined/NaN/wrong-type, which HC-003
+      // forbids rendering as data. AC10e/AC10f pin cases that already pass
+      // today; AC10a-d are the NaN gap.
+      // ------------------------------------------------------------------
+      test('AC10a: p1={} (power_w absent) ⇒ solarToGrid === 0, not NaN', () => {
+        var p1 = {};
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(Number.isNaN(flows.solarToGrid)).toBe(false);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC10b: power_w=undefined ⇒ solarToGrid === 0, not NaN', () => {
+        var p1 = { power_w: undefined };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(Number.isNaN(flows.solarToGrid)).toBe(false);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC10c: power_w=NaN ⇒ solarToGrid === 0, not NaN', () => {
+        var p1 = { power_w: NaN };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(Number.isNaN(flows.solarToGrid)).toBe(false);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC10d: power_w="a string" (wrong type) ⇒ solarToGrid === 0, not NaN', () => {
+        var p1 = { power_w: 'a string' };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(Number.isNaN(flows.solarToGrid)).toBe(false);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC10e: power_w=null ⇒ solarToGrid === 0 (pinned as intent, not accident)', () => {
+        // -null coerces to -0 today, and Math.max(0, -0) === 0 — pin that
+        // outcome as an intentional guard result, not a happy coincidence of
+        // JS coercion that a future refactor could break unnoticed.
+        var p1 = { power_w: null };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(Number.isNaN(flows.solarToGrid)).toBe(false);
+        expect(flows.solarToGrid).toBe(0);
+      });
+
+      test('AC10f: regression guard — a normal finite negative power_w still works: power_w=-1200 ⇒ solarToGrid === 1200', () => {
+        var p1 = { power_w: -1200, import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(flows.solarToGrid).toBe(1200);
+      });
+
+      test('AC10g: power_w="-1200" (numeric string) ⇒ solarToGrid === 0, not NaN (regression lock)', () => {
+        // Numeric strings are deliberately NOT coerced: an unobserved P1
+        // contract shape must never render as authoritative data (HC-006).
+        var p1 = { power_w: '-1200', import_power_w: 0 };
+        var sungrow = {
+          pv_power_w: 1000,
+          load_power_w: 500,
+          battery_power_w: 0,
+          battery_soc_pct: 50,
+          export_power_w: 0,
+        };
+        var flows = PowerFlow.computeFlows(p1, sungrow);
+        expect(Number.isNaN(flows.solarToGrid)).toBe(false);
+        expect(flows.solarToGrid).toBe(0);
+      });
     });
   });
 

@@ -5,6 +5,10 @@
  * TDD: Tests written FIRST, before implementation.
  *
  * CHANGELOG:
+ * - 2026-07-30: RW-M02 — add failing test pinning realtime
+ *   export_power_w === 0 (D1 rider; the field is always 0 on the real
+ *   WiNet-S firmware and must not depict a physically contradictory
+ *   export while importing) (Spec Author)
  * - 2026-02-15: Initial test suite (STORY-004)
  */
 
@@ -98,6 +102,17 @@ describe('getMockSungrowRealtime', () => {
     expect(typeof data.load_power_w).toBe('number');
     expect(typeof data.export_power_w).toBe('number');
     expect(typeof data.sample_count).toBe('number');
+  });
+
+  // RW-M02 AC9 (mock rider): export_power_w is always 0 on the real WiNet-S
+  // firmware (Architecture.md, Sign Convention Reference) and computeFlows no
+  // longer reads it at all (RW-M02). The mock previously set it to 750.5
+  // alongside power_w: +450 (importing) — a physically contradictory state
+  // that made mock mode draw a phantom export line. Pinning 0 here does not
+  // conflict with the type-only assertion above (0 is a number).
+  test('AC9: export_power_w is pinned to 0 (dead field, always 0 on this firmware)', () => {
+    const data = MockData.getMockSungrowRealtime();
+    expect(data.export_power_w).toBe(0);
   });
 });
 
