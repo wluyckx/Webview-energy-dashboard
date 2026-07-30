@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>28</done>
-  <progress>93%</progress>
+  <done>29</done>
+  <progress>97%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E21 done (Hestia STORY-108) — knowledge transfer complete: docs/energy-domain.md carries the sign conventions, captured contracts, R1 history and governance lessons, self-contained; domain-lib coverage 98.1%. R10 closed. Only RW-E22 (cutover + donor archival, this repo\u0027s Governor gate) remains.</entry>
     <entry date="2026-07-30">RW-E16 through RW-E20 done (Hestia STORY-103 to 107) - ALL FOUR CHART VIEWS plus the grid history: timeline (R13 resolved via P1), monthly (F5 fixed), capacity (real scale, F3/F4), grid Live ring and Day/Month/Year from the captured contract. Only knowledge transfer (RW-E21) and cutover (RW-E22, gated by this repo) remain.</entry>
     <entry date="2026-07-30">RW-E15 done (Hestia STORY-102, PR #16) — chart foundation: recharts added, token bridge drift-tested, jsdom harness, and the REAL BUNDLE MEASUREMENT closing R9 (route chunk 97.9 KB gz, recharts+d3 ~89 KB, under estimate). The four chart views (RW-E16..E19/E20) build on this next.</entry>
     <entry date="2026-07-30">RW-E12..E14 done (Hestia STORY-099..101, PRs #13-#15) — the LIVE-DATA TIER: same-origin schema-validating client (HC-002 as code), per-source scheduler with visibility gating + backoff, cold-open mock fallback framed offline. Next: charts (RW-E15 foundation adds recharts + pins the real bundle budget).</entry>
@@ -803,7 +804,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Do not start this story before RW-C01 closes. Starting it early is exactly how D3 shipped.</notes>
 </story>
 
-<story id="RW-E21" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E21" status="done" complexity="M" lane="E" model_lane="Fable" note="Hestia STORY-108 (commit 5459744): docs/energy-domain.md written self-contained (AC6) — Sign Convention Reference, captured API contracts with HC-006 as a rule, the R1 history, and the governance lessons with evidence (AC7). Domain-lib coverage 98.1% stmts / 100% per module (AC5). The pure-logic pins incl. the D1 invariant were ported incrementally across the phase (AC1). R10 closed — the donor is safe to archive.">
   <title>Test and knowledge transfer into Hestia</title>
   <dependencies>RW-E18, RW-E19</dependencies>
   <description>
