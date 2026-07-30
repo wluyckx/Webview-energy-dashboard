@@ -1,0 +1,304 @@
+/*
+ * STAGED DESIGN REFERENCE — READ ONLY (ADR-010 / RW-C02)
+ * Captured verbatim from the Lovable project "Energy Watch", 2026-07-30.
+ * Do NOT import into src/. Port destination: RW-E02. See lovable/MANIFEST.md.
+ *
+ * This is the design system. Everything below the banner is the vendor file.
+ *
+ * PORT NOTES (RW-E02):
+ * - The `:root` colour block is verified hex-identical to docs/FE_design.md.
+ * - **The "shadcn compatibility layer" block is deleted at port** (RW-E02 AC2)
+ *   — it exists only to feed the 46 discarded shadcn components.
+ * - The six @utility blocks (num, label-caps, card-surface, card-hover,
+ *   shimmer, dimmed-stale) plus pulse-warning / glow-solar / rise-in are the
+ *   motion and surface vocabulary the interaction spec never delivered in v1.
+ * - **The `prefers-reduced-motion` block at the bottom is the global collapse
+ *   that every other component relies on** — PowerFlow's flow-dash, the
+ *   shimmer sweep, the warn pulse and the solar glow are all disabled by it and
+ *   by nothing else. If it does not port, those animations run for users who
+ *   asked them not to (RW-E02 AC5).
+ * - `@import "tw-animate-css"` is a DEPENDENCY. It is not in Architecture.md's
+ *   approved-additions table and nothing in the portable component set appears
+ *   to use it — treat as discard, and if a port story wants it, that is a
+ *   dependency escalation (only recharts is pre-approved).
+ * - `@import "tailwindcss" source(none)` + `@source "../src"` is Tailwind v4
+ *   vendor wiring; Hestia has its own. Do not carry these two lines.
+ * - Fonts: DM Sans + JetBrains Mono are referenced here as families only. The
+ *   Google Fonts <link> tags live in the discarded route shell and are never
+ *   ported (ADR-007). DEC-02 decides self-host vs Hestia's system stack.
+ * - All tokens must be scoped under an `.energy` wrapper at port so the dark
+ *   island cannot leak into light-themed Hestia (HC-004 as amended). Note that
+ *   the `@layer base` block here sets `html`/`body` background and
+ *   `color-scheme: dark` globally — that is exactly the leak to prevent.
+ */
+
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+/*
+ * Energy Dashboard design system — "Calm Control Room".
+ * Dark mode only. No light theme, no toggle.
+ * All colours below are the exact brief tokens (hex kept verbatim).
+ */
+
+:root {
+  --radius: 0.875rem;
+
+  /* Backgrounds */
+  --bg-base: #0a0e14;
+  --bg-surface: #111820;
+  --bg-elevated: #1a2230;
+  --bg-subtle: #0d1219;
+
+  /* Text */
+  --text-primary: #e8ecf1;
+  --text-secondary: #8899aa;
+  --text-tertiary: #4a5568;
+
+  /* Energy flow */
+  --solar: #f6b93b;
+  --battery-charge: #6c5ce7;
+  --battery-discharge: #a29bfe;
+  --grid-import: #e17055;
+  --grid-export: #00b894;
+  --home: #dfe6e9;
+
+  /* Status */
+  --success: #00b894;
+  --warning: #fdcb6e;
+  --danger: #e17055;
+  --accent: #74b9ff;
+
+  /* Borders */
+  --border-subtle: #1e2a3a;
+  --border-focus: #74b9ff;
+
+  /* shadcn compatibility layer (dark values only) */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent);
+  --primary-foreground: #06121f;
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-secondary);
+  --accent-foreground: #06121f;
+  --destructive: var(--danger);
+  --destructive-foreground: #1a0f0a;
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--border-focus);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lift: 0 8px 24px -8px rgb(0 0 0 / 0.65);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-subtle: var(--bg-subtle);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --color-solar: var(--solar);
+  --color-battery-charge: var(--battery-charge);
+  --color-battery-discharge: var(--battery-discharge);
+  --color-grid-import: var(--grid-import);
+  --color-grid-export: var(--grid-export);
+  --color-home: var(--home);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-accent: var(--accent);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-focus: var(--border-focus);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: var(--bg-base);
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Data numerals: tabular monospace so counters never shift width */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.02em;
+}
+
+@utility label-caps {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+@utility card-surface {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease;
+}
+
+@utility card-hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift);
+    }
+  }
+}
+
+@utility shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-elevated);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.05),
+      transparent
+    );
+    animation: shimmer-sweep 1.6s infinite;
+  }
+}
+
+@utility dimmed-stale {
+  opacity: 0.62;
+  filter: saturate(0.7);
+  transition: opacity 300ms ease;
+}
+
+@keyframes shimmer-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -60;
+  }
+}
+
+@keyframes warn-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(253 203 110 / 0);
+    border-color: var(--border-subtle);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgb(253 203 110 / 0.12);
+    border-color: rgb(253 203 110 / 0.5);
+  }
+}
+
+@utility pulse-warning {
+  animation: warn-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes solar-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgb(246 185 59 / 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgb(246 185 59 / 0.55));
+  }
+}
+
+@utility glow-solar {
+  animation: solar-glow 4s ease-in-out infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility rise-in {
+  animation: rise-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
