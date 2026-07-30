@@ -1,0 +1,897 @@
+# Architecture.md - Energy Dashboard
+
+**Last Updated**: 2026-07-29
+**Supersedes**: the vanilla-JS single-file architecture of 2026-02-15 (preserved at `Architecture.md.backup`)
+
+---
+
+## Overview
+
+Residential energy monitoring dashboard for a Belgian solar + battery + grid setup,
+embedded in a Flutter mobile app via WebView. Visualizes real-time and historical
+energy data by fetching from two self-hosted FastAPI backends (P1 smart meter,
+Sungrow inverter).
+
+**Primary Goal**: Answer "where is my energy going right now?" in under 2 seconds,
+and increasingly "am I about to set a new monthly capacity peak?" (Belgian
+capaciteitstarief).
+
+**Companion Project**: The Flutter host app provides device IDs and base URLs via
+URL parameters and delivers Bearer tokens via the WebView postMessage bridge (or
+the dashboard runs in cookie-based proxy mode — see Authentication).
+
+### The 2026-07-29 Pivot
+
+The frontend has been re-designed in Lovable (project "Energy Watch") and the
+generated screens are adopted **as-is** as the new frontend. This replaces the
+vanilla-JS/single-HTML-file architecture wholesale:
+
+| Retired | Replaced by | Recorded in |
+|---------|-------------|-------------|
+| HC-001 Single-File Delivery (< 200 KB inlined HTML, no npm runtime deps, no bundler) | Vite-built static SPA with a dependency tree and per-asset budget (HC-005) | ADR-005 (2026-07-29) |
+| ADR-001 Vanilla JavaScript Over Framework | React (TanStack Start) + TypeScript | ADR-005 (2026-07-29) |
+| ADR-002 Chart.js via CDN | Bundled charting library, no CDN, no SRI exposure | ADR-007 (2026-07-29) |
+| ADR-003 SVG for Power Flow (vanilla DOM manipulation) | Inline SVG retained, rendered by React components | ADR-008 (2026-07-29) |
+| `scripts/build.js` inlining pipeline | `vite build` producing `dist/` static assets | ADR-005 (2026-07-29) |
+| Chart.js + Google Fonts CDNs, CSP `script-src 'unsafe-inline'` | Self-hosted fonts, bundled charts, hashed assets, `script-src 'self'` | Build & Deployment |
+
+Rationale for the pivot: v1 was functionally complete but under-delivered on the
+interaction spec (no counting animations, no skeletons, no per-section staleness,
+no battery visual, a Peak card without its threshold). The Lovable redesign
+(`docs/REDESIGN_BRIEF.md`) delivers those screens on a modern component stack;
+the 200 KB single-file constraint that justified vanilla JS no longer buys
+anything once the artifact is served by our own nginx container.
+
+What does **not** change: the two external APIs and their contracts, the sign
+conventions, the credential rules, graceful degradation, dark-mode-only, poll
+cadences, and the FE_design.md token system. Those all carry forward and are
+restated in this document.
+
+---
+
+## Tech Stack
+
+| Component | Technology | Version | Purpose |
+|-----------|------------|---------|---------|
+| Framework | TanStack Start (React) | per `bun.lock` | Routing, app shell — **client-only/SPA mode, no SSR** (ADR-006) |
+| Language | TypeScript | per generated `tsconfig.json` | All application code |
+| Bundler | Vite | per `bun.lock` | Dev server and production build |
+| Package manager | Bun | current | Install and script runner (`bun.lock`, `bunfig.toml` from Lovable output) |
+| Styling | Tailwind CSS | per generated project | Utility classes over FE_design.md tokens |
+| Components | shadcn/ui | vendored in `src/components/ui/` | Primitive component library (~50 components) |
+| Charting | Bundled library from Lovable output (expected: Recharts via shadcn chart primitives — **to be confirmed**) | per `bun.lock` | Timeline, monthly, capacity charts (ADR-007) |
+| Graphics | Inline SVG in React components | — | Power flow diagram (ADR-008) |
+| Data typography | JetBrains Mono, **self-hosted** (bundled font files) | latest | Tabular-lining numbers |
+| Body typography | DM Sans, **self-hosted** (bundled font files) | latest | Labels, body text |
+| Testing | Vitest + jsdom + React Testing Library | latest | Unit and component tests (dev only) |
+| Linting | ESLint (flat config, `eslint.config.js`) | per generated project | Code quality (dev only) |
+| Formatting | Prettier | latest | Code style (dev only) |
+| Serving | nginx (alpine, Docker) behind Caddy | — | Static file serving in production — **no Node/Bun runtime in production** |
+
+### Dependency Gate
+
+The lockfile delivered by Lovable defines the approved dependency baseline.
+**Adding any new runtime dependency after adoption requires Architect approval
+recorded as an ADR note** — the single-file rule is gone, but uncontrolled
+dependency growth is how bundles die. CDN-loaded resources of any kind are
+forbidden (ADR-007): everything ships in the bundle.
+
+---
+
+## Directory Structure
+
+The Lovable output lands at the repo root and becomes the application. Confirmed
+files from the generated project are marked (L); integration files we add are
+marked (I). Component filenames inside `src/components/` (other than `ui/`) are
+**expected, to be confirmed against the delivered output**.
+
+```
+energy-dashboard/
+├── CLAUDE.md                        # Governance operating model (roles, contracts, gates)
+├── Architecture.md                  # This file
+├── SKILL.md                         # Security guidelines (binds every role)
+├── docs/
+│   ├── BACKLOG.md                   # Stories and requirements
+│   ├── REDESIGN_BRIEF.md            # Brief sent to Lovable — screen inventory + data contract
+│   ├── FE_design.md                 # Visual spec (tokens carry forward; screens now authoritative in Lovable output)
+│   ├── project_idea.md              # Original API contracts
+│   └── stories/                     # Story logs
+├── src/
+│   ├── router.tsx               (L) # TanStack Router setup
+│   ├── routeTree.gen.ts         (L) # Generated route tree — never hand-edited
+│   ├── routes/                  (L) # File-based routes
+│   │   ├── __root.tsx               #   App shell
+│   │   ├── index.tsx                #   Main dashboard (the core scroll)
+│   │   ├── grid.tsx                 #   Grid detail (expected filename — TBC)
+│   │   └── capacity.tsx             #   Capacity peak (expected filename — TBC)
+│   ├── server.ts / start.ts     (L) # TanStack Start entry files (unused server features — see ADR-006)
+│   ├── styles.css               (L) # Tailwind entry + FE_design token CSS variables
+│   ├── components/              (L) # Screen components generated by Lovable (names TBC)
+│   │   └── ui/                  (L) # shadcn/ui primitives — vendored, edit sparingly
+│   ├── hooks/                   (L) # use-mobile.tsx + generated hooks; useEnergyData lives here or in data/
+│   ├── lib/
+│   │   ├── utils.ts             (L) # shadcn cn() helper
+│   │   ├── energy/              (I) # PURE domain logic — no React imports, fully unit-testable
+│   │   │   ├── types.ts             #   API payload types with sign conventions in doc comments
+│   │   │   ├── flows.ts             #   computeFlows (power flow diagram math)
+│   │   │   ├── balance.ts           #   computeBalance (self-consumption / self-sufficiency)
+│   │   │   ├── capacity.ts          #   peak headroom / 15-min rolling average helpers
+│   │   │   └── format.ts            #   W/kW/kWh formatting, precision rules
+│   │   └── api/                 (I) # Data access — no React imports
+│   │       ├── client.ts            #   fetch wrapper: timeout, auth mode, cache-on-failure
+│   │       ├── validate.ts          #   response schema guards, base-URL allowlist
+│   │       └── config.ts            #   URL param parsing + postMessage bridge (port of config.js)
+│   └── data/                    (I) # Integration seam (see Data Flow)
+│       ├── energy-source.ts         #   EnergyDataSource interface
+│       ├── mock.ts                  #   Mock implementation (mirrors tests/fixtures shapes)
+│       └── live.ts                  #   Live implementation over lib/api
+├── tests/                       (I) # Vitest suites (ported from Jest — see Testing Strategy)
+│   └── fixtures/                    # JSON fixtures — carried over unchanged
+├── legacy/                          # Frozen vanilla implementation during migration (see below)
+├── public/                          # Static assets copied verbatim into dist/
+├── components.json              (L) # shadcn/ui configuration
+├── vite.config.ts               (L) # Build configuration (SPA/prerender mode set here — ADR-006)
+├── tsconfig.json                (L)
+├── eslint.config.js             (L)
+├── bun.lock / bunfig.toml       (L)
+├── scripts/
+│   └── check-size.js            (I) # Bundle budget gate (replaces build.js's 200 KB check)
+├── Dockerfile                       # nginx:alpine + COPY dist/
+├── nginx.conf                       # SPA fallback, cache headers, CSP
+├── docker-compose.yml               # ghcr image, edge network, CSP_CONNECT_HOSTS env
+└── deploy.sh                        # Build → upload dist/ → compose up (updated for multi-file artifact)
+```
+
+### Fate of the existing code
+
+- `src/*.js` (9 vanilla modules), `index.html`, `scripts/build.js`, `.eslintrc.json`,
+  `jest.config.js`, and the Jest `tests/*.test.js` suites move to `legacy/` at
+  integration time. They are **frozen** — reference material for porting logic,
+  never loaded by the new app.
+- `legacy/` is deleted once the pure-logic test port (Testing Strategy) is
+  complete and verified. Git history remains the archive.
+- `tests/fixtures/*.json` survive as-is — they encode real API response shapes.
+
+---
+
+## Key Components / Screen Inventory
+
+Three routes plus mandated degradation states. Per the integration seam (§Data
+Flow), **every screen component is presentational and prop-driven**; no component
+fetches its own data.
+
+### Route `/` — Main dashboard
+
+| # | Section | Data dependency | Cadence |
+|---|---------|----------------|---------|
+| 1 | Status bar (sticky): Live/Delayed/Offline dot, last-update time, quick battery %/solar kW | staleness state from data layer | derived |
+| 2 | **Power flow diagram (hero)**: Solar/Battery/Home/Grid nodes, animated lines, battery SoC fill inside icon, solar glow by production | P1 `/v1/realtime` + Sungrow `/v1/realtime` → `computeFlows` | 5 s |
+| 3 | KPI strip (4 cards): Grid (signed, coral/green accent), Battery (SoC + progress bar, warning pulse < 20%), Solar today, Month peak (entry to `/capacity`) | realtime pair + P1 `/v1/capacity/month/{YYYY-MM}` | 5 s; capacity on load + month rollover |
+| 4 | Energy balance (today): stacked source bar, self-consumption / self-sufficiency badges, summary line | Sungrow `/v1/series?frame=day` → `computeBalance` | 60 s |
+| 5 | Power timeline (24 h): solar/grid/battery areas around zero line, home load overlay, **battery SoC curve on secondary axis** | Sungrow `/v1/series?frame=day` | 5 min |
+| 6 | Monthly overview: paired daily bars, net-export days green, today highlighted | Sungrow `/v1/series?frame=month` | on load |
+| 7 | Cost tracking stub: intentional "coming soon" card | none | — |
+
+### Route `/grid` — Grid detail
+
+Pushed from the Grid KPI card. Large signed readout; live area chart of the last
+~5 minutes; Live/Day/Month/Year segmented tabs with import-vs-export bars and
+period totals.
+
+- Live tab: driven by P1 `/v1/realtime` at 5 s, accumulated in a **client-side
+  ring buffer** (~5 min of samples) — there is no API for sub-minute history.
+- Day/Month/Year tabs: P1 `/v1/series?frame=…`. **BLOCKED until the P1 series
+  bucket contract is captured — see Open Risks R1. Do not guess field names.**
+
+### Route `/capacity` — Capacity peak
+
+The Belgian capacity tariff bills on the highest 15-minute average import of the
+month. Data: P1 `/v1/capacity/month/{YYYY-MM}` (`monthly_peak_w`,
+`monthly_peak_ts`, `peaks[]` of `{ts, avg_power_w}`) plus P1 realtime.
+
+- Current monthly peak with date/time; threshold gauge against the 2.5 kW Belgian
+  residential reference, escalating `--success` → `--warning` → `--danger`.
+- **Live headroom**: current 15-minute rolling average of `import_power_w`
+  (client-side window over realtime samples — an approximation of the meter's
+  quarter-hour alignment; label it as indicative) vs. this month's peak.
+- `peaks[]` chart across the month; plain-language cost explanation.
+
+### Mandated states (HC-003 — these are not edge cases)
+
+- **Skeleton loading**: shimmer placeholders matching each component's real layout.
+- **Stale section**: per-section `--warning`-tinted badge ("Data from 45s ago"),
+  content visible but dimmed. Staleness threshold: 30 s past expected cadence.
+- **Offline**: top banner; last-known values retained and visibly marked historical.
+
+### Design Principles (carried forward)
+
+- **DP-001 Numbers First** — the key number is the largest element; units smaller and lighter than the value.
+- **DP-002 Honest About Data Freshness** — never display a number without source and age; live/stale/offline are visually distinct per section.
+- **DP-003 Flow Direction is Sacred** — the flow diagram must be correct per the Sign Convention Reference; wrong direction is worse than no data.
+- **DP-004 Glanceable Dashboard** — flow, SoC, and solar production visible without scrolling on mobile.
+
+Direction remains **"Calm Control Room"** (FE_design.md): restrained, data-first,
+color reserved for meaning, motion like a gauge settling. Numbers count to new
+values over ~400 ms ease-out — they never snap.
+
+---
+
+## Data Flow & Integration Seam
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    Energy Dashboard (WebView, SPA)               │
+│                                                                  │
+│  React screens (presentational, prop-driven)                     │
+│        ▲                                                         │
+│        │ useEnergyData() — single hook/context                   │
+│  ┌─────┴──────────────────────────────┐                          │
+│  │ src/data — EnergyDataSource seam   │                          │
+│  │   mock.ts   ◄── mock=true          │                          │
+│  │   live.ts   ◄── default            │                          │
+│  └─────┬──────────────────────────────┘                          │
+│        │ calls                                                   │
+│  ┌─────┴───────────────┐   ┌───────────────────────────┐         │
+│  │ src/lib/api          │   │ src/lib/energy            │        │
+│  │ client / validate /  │──►│ pure: flows, balance,     │        │
+│  │ config (no React)    │   │ capacity, format (no React│        │
+│  └─────┬───────────────┘   │ no fetch, no DOM)          │        │
+│        │                    └───────────────────────────┘        │
+└────────┼─────────────────────────────────────────────────────────┘
+         │ HTTPS fetch (Bearer or cookie)
+   ┌─────┴─────┐        ┌─────────────┐
+   │  P1 API   │        │ Sungrow API │
+   │ (grid)    │        │ (solar/batt)│
+   └───────────┘        └─────────────┘
+```
+
+### The seam, precisely
+
+The redesign brief required all live values to flow through **one hook backed by
+one mock module**. The architecture pins that down as:
+
+1. **`EnergyDataSource`** (`src/data/energy-source.ts`): a TypeScript interface
+   with one method per API call (`p1Realtime()`, `p1Capacity(month)`,
+   `sungrowRealtime()`, `sungrowSeries(frame)`, `p1Series(frame)` — the last
+   inactive until R1 resolves) plus staleness metadata. Two implementations:
+   - `mock.ts` — deterministic data mirroring `tests/fixtures/` shapes; selected
+     by `mock=true`. Ships in production (it is the HC-003 fallback of last resort).
+   - `live.ts` — wraps `src/lib/api/client.ts`.
+   Replacing Lovable's generated mock module with the live client is a
+   **single-file change at this interface** — screens never know which is active.
+2. **`useEnergyData()`** owns polling (cadence, visibility gating, backoff —
+   see State Management), caching of last-known values, and per-source staleness.
+   It exposes typed state to screens; it contains no fetch code and no math.
+3. **`src/lib/energy/`** holds every sign-convention interpretation and
+   energy-flow computation as **pure functions with no React, fetch, or DOM
+   imports** — this is the part unit tests must be able to reach in isolation.
+   `computeFlows` and `computeBalance` port from `legacy/src/power-flow.js` /
+   `legacy/src/energy-balance.js` with their semantics intact (note: the ported
+   `computeFlows` must derive solar→grid from **P1 `power_w < 0`**, not Sungrow
+   `export_power_w`, which is dead on this firmware — the legacy code still reads
+   `export_power_w` and therefore never shows solar→grid; fix at port time and
+   pin with tests).
+4. **Types** (`src/lib/energy/types.ts`): payload shapes typed exactly against
+   the API Integration section, sign conventions written into doc comments on
+   each field.
+
+---
+
+## API Integration
+
+Two external REST APIs; we own no backend. All communication over HTTPS.
+
+### P1 API (grid meter) — authoritative for grid direction
+
+| Endpoint | Returns | Used by |
+|----------|---------|---------|
+| `GET /v1/realtime?device_id=` | `power_w` (signed), `import_power_w`, `energy_import_kwh`, `energy_export_kwh`, `ts` | flow diagram, Grid KPI, Grid live tab, capacity headroom |
+| `GET /v1/series?device_id=&frame=` | frame `day`=hourly, `month`=daily, `year`=monthly buckets — **bucket field names undocumented, see R1** | Grid detail Day/Month/Year (blocked) |
+| `GET /v1/capacity/month/{YYYY-MM}?device_id=` | `monthly_peak_w`, `monthly_peak_ts`, `peaks[]: {ts, avg_power_w}` | Month-peak KPI, `/capacity` |
+| `GET /health` | `{status: "ok"}`, no auth | status bar |
+
+### Sungrow API (solar + battery)
+
+| Endpoint | Returns | Used by |
+|----------|---------|---------|
+| `GET /v1/realtime?device_id=` | `pv_power_w`, `pv_daily_kwh`, `battery_power_w`, `battery_soc_pct`, `battery_temp_c`, `load_power_w`, `export_power_w` (**dead — always 0, never read**) | flow diagram, Battery/Solar KPIs |
+| `GET /v1/series?device_id=&frame=` | buckets `{bucket, avg_pv_power_w, max_pv_power_w, avg_battery_power_w, avg_battery_soc_pct, avg_load_power_w, …}` | energy balance, timeline (incl. SoC curve), monthly overview |
+| `GET /health` | `{status: "ok"}`, no auth | status bar |
+
+Series frames on both APIs: `day` = hourly buckets, `month` = daily, `year` = monthly.
+
+### Contract discipline
+
+**Guessing an API contract is forbidden** (CLAUDE.md escalation reason
+`api_contract_unknown`). This is not theoretical: the shipped `p1-card.js` reads
+`energy_import_kwh` / `avg_power_w` from P1 series buckets — fields that were
+never documented and do not exist — and every bar in that view renders NaN. The
+P1 series bucket contract must be **captured from the live API and recorded here**
+before any P1-series feature is built (Open Risk R1).
+
+---
+
+## Authentication & Configuration
+
+Two auth modes, selected per-API by whether a token is available. Both modes are
+production paths.
+
+### Mode A — WebView bridge tokens (HC-002)
+
+1. Flutter loads the dashboard URL with non-sensitive config as URL parameters.
+2. `src/lib/api/config.ts` parses parameters; any `p1_token` / `sungrow_token`
+   present in the URL (dev/test fallback only) are extracted and **immediately
+   scrubbed via `history.replaceState`**, before validation.
+3. Flutter posts `{type: "bootstrap", p1_token, sungrow_token}` (and later
+   `token_refresh`) via `postMessage`. Origin allowlist: same-origin, plus
+   `'null'` only when `window.flutter_inappwebview` is present. Payloads are
+   schema-checked before use.
+4. Tokens live in JS memory only. Never in localStorage, sessionStorage,
+   cookies, or logs. Requests carry `Authorization: Bearer <token>`.
+
+### Mode B — Proxy mode (cookie auth)
+
+Implemented 2026-03-01, documented here for the first time (ADR-009). When no
+token is supplied for an API, the client sends requests with
+`credentials: 'include'`; a Caddy reverse proxy in front of the APIs
+authenticates the browser session cookie and injects the backend Bearer token
+server-side. The dashboard never sees a token in this mode.
+
+**Security consequence — base-URL allowlist (mandatory):** in proxy mode a
+crafted `p1_base`/`sungrow_base` URL parameter would make the browser send
+credentialed requests to an attacker's host; in bridge mode it would leak the
+Bearer token in the `Authorization` header. Checking for an `https://` prefix —
+all the legacy `config.js` does — is **insufficient**. `validate.ts` must parse
+each base URL and verify the host against a build-time allowlist of first-party
+API hosts (the same set templated into the CSP via `CSP_CONNECT_HOSTS`), rejecting
+anything else with a config error. CSP `connect-src` is the backstop, not the
+defense.
+
+### Configuration parameters
+
+| Parameter | Purpose | Delivery | Required |
+|-----------|---------|----------|----------|
+| `p1_base` / `sungrow_base` | API base URLs | URL parameter — **allowlist-validated** | Yes |
+| `p1_device_id` / `sungrow_device_id` | Device identifiers | URL parameter | Yes |
+| `p1_token` / `sungrow_token` | Bearer tokens | postMessage bridge (URL fallback scrubbed) | No — absence selects proxy mode per API |
+| `mock` | Mock data mode | URL parameter (`true`/`false`) | No (default `false`) |
+
+Outbound bridge: `window.flutter_inappwebview.callHandler('onEvent', data)`;
+the app dispatches `dashboardReady` after mount. No theme channel (ADR-004).
+
+### Input Validation (hard rules)
+
+| Input | Validation |
+|-------|-----------|
+| API JSON responses | Schema guards in `validate.ts` (types, null-safety, range sanity) before data enters the store; malformed responses count as fetch failures |
+| URL parameters | Type + format + **host allowlist** for base URLs; allowlist for known param names; unknown params ignored |
+| postMessage events | Origin allowlist + type/schema check |
+| Timer callbacks | Stale-data detection; errors contained per source, never crash the UI |
+| Rendered values | React's default escaping; no `dangerouslySetInnerHTML` for data-derived content |
+
+---
+
+## State Management & Polling
+
+No global state library. Server data lives in the data layer behind
+`useEnergyData()`; UI-local state stays in components. If the Lovable output
+includes TanStack Query, the data layer may be implemented on it
+(`refetchInterval` + `refetchIntervalInBackground: false` supplies visibility
+gating natively) — **to be confirmed against the delivered lockfile**; otherwise a
+hand-rolled scheduler module (pure, injectable clock, unit-testable) implements
+the same contract. Either way the following behavior is normative:
+
+### Poll cadence (unchanged)
+
+| Data | Interval |
+|------|----------|
+| Realtime (P1 + Sungrow, parallel) | 5 s |
+| Energy balance (Sungrow series day) | 60 s |
+| Timeline (Sungrow series day) | 5 min |
+| Monthly overview (Sungrow series month) | on load |
+| Capacity month | on load + month rollover |
+
+### Visibility-gated polling (new — fixes a live defect)
+
+The legacy app polls forever, including while the WebView is backgrounded,
+burning battery and data. The new data layer **must** subscribe to
+`document.visibilitychange`: on hidden, all polling pauses; on visible, an
+immediate refresh of every feed fires and intervals restart. The Flutter host
+backgrounding the WebView must produce zero network activity.
+
+### Failure backoff (new — fixes a live defect)
+
+The legacy app retries every 5 s indefinitely against a dead API. The new client
+applies per-source exponential backoff on consecutive failures: 5 s → 10 s →
+20 s → 40 s, capped at 60 s; any success resets to the base cadence. Staleness
+badges and the offline banner (both sources ≥ 3 consecutive failures) reflect
+state per HC-003. Fetch timeout stays at 30 s via `AbortController`.
+
+### Caching
+
+Last-known values per feed are retained in memory with the timestamp of last
+success; failures serve the cached value flagged stale (HC-003). No persistent
+storage — state resets on load.
+
+---
+
+## Design System Mapping (FE_design.md → Tailwind/shadcn)
+
+`docs/FE_design.md` remains the authoritative token source (colors, type scale,
+spacing, component anatomy, motion). Under the new stack it binds as follows:
+
+- **CSS variables first**: every FE_design token is declared once as a CSS custom
+  property in `src/styles.css` under `:root` — `--bg-base: #0A0E14`, `--solar:
+  #F6B93B`, `--grid-import: #E17055`, `--grid-export: #00B894`,
+  `--battery-charge`, `--battery-discharge`, `--home`, `--success`, `--warning`,
+  `--danger`, `--accent`, `--border-subtle`, `--border-focus`, text and surface
+  tokens per FE_design.md. Components reference tokens, never literal hex.
+- **shadcn convention**: shadcn/ui components consume their own variable set
+  (`--background`, `--foreground`, `--card`, `--primary`, `--ring`, …). Map them
+  to FE_design values in the same stylesheet (`--background` ← `--bg-base`,
+  `--card` ← `--bg-surface`, `--ring` ← `--border-focus`, etc.). One theme block
+  only — no `.dark` class switching, no alternate palette (HC-004).
+- **Tailwind theme**: energy colors exposed as Tailwind color names
+  (`solar`, `grid-import`, …) that resolve to the CSS variables, so utilities and
+  raw CSS agree. Exact mechanism follows the generated project's Tailwind version
+  (v4 CSS-first `@theme` expected — TBC).
+- **Typography**: JetBrains Mono and DM Sans **self-hosted** via bundled font
+  packages (the Google Fonts CDN is retired with the CSP tightening). Data font
+  used with `font-variant-numeric: tabular-nums` so digits hold width while
+  counters animate. Type scale and the units-smaller-than-numbers rule per
+  FE_design.md.
+- **Spacing**: 8 px grid (4, 8, 12, 16, 24, 32, 48, 64) — Tailwind's default
+  scale already conforms; do not introduce off-grid values.
+- **Motion**: number counters ~400 ms ease-out; flow dashes ~3 s loops; direction
+  flip flash ~300 ms; everything collapses under `prefers-reduced-motion`.
+- **Accessibility**: WCAG AA contrast, 44×44 px touch targets, visible focus
+  rings (`--border-focus`), aria-labels on chart data.
+
+Lovable screens were generated from this same token system
+(`docs/REDESIGN_BRIEF.md` §4); FE_design conformance review (CLAUDE.md §2.3
+DESIGN gate) still applies to every presentation change after adoption.
+
+---
+
+## Testing Strategy
+
+The 265-test Jest+jsdom suite is bound to the vanilla IIFE modules and dies with
+them. Replacement:
+
+| Test type | Location | Tool | Target |
+|-----------|----------|------|--------|
+| Pure domain logic | `tests/energy/` | Vitest | **highest value — port aggressively**: flows, balance, capacity, format |
+| API client & validation | `tests/api/` | Vitest, mocked `fetch` | contract shapes, auth-mode selection, allowlist, backoff, timeout, cache-on-failure |
+| Config parsing | `tests/api/` | Vitest | URL params, scrubbing, allowlist rejection, postMessage schema |
+| Data layer | `tests/data/` | Vitest, fake timers, injectable clock | cadence, visibility gating, backoff schedule, staleness |
+| Components | `tests/components/` | Vitest + React Testing Library (jsdom) | states (skeleton/stale/offline), sign-driven rendering (accent flips, direction) |
+| Fixtures | `tests/fixtures/` | JSON (carried over) | real API response shapes |
+
+### What must be ported (not rewritten from scratch)
+
+The pure-calculation tests encode hard-won domain knowledge — port their
+assertions into TypeScript against `src/lib/energy/`:
+
+1. **Sign-convention tests**: `computeFlows` with negative `power_w` (export),
+   negative `battery_power_w` (discharge), `export_power_w = 0` firmware quirk —
+   including the new invariant *"with P1 `power_w = -2000`, solar→grid flow is
+   non-zero even though Sungrow `export_power_w` is 0"* (this pins the legacy
+   defect fixed at port time — see Data Flow §3).
+2. **Energy balance**: bucket summation, self-consumption / self-sufficiency
+   clamping, zero-production and zero-consumption edges.
+3. **Config validation**: all `config.test.js` cases, plus new allowlist cases.
+4. **Formatting**: W/kW thresholds and precision.
+
+Rules carried forward: no test touches real network or services; time-dependent
+code takes an injectable clock (never `Date.now()` inline in business logic);
+fixtures that drift from this document are a defect in one of the two —
+escalate, don't silently pick a side. Coverage target: 80%+ on `src/lib/`.
+
+### Quality gates (replaces the command set in CLAUDE.md §3)
+
+```bash
+bun install                 # deps per lockfile
+bun run lint                # eslint (flat config) — zero errors, zero warnings
+bunx prettier --check .     # formatting
+bun run test                # vitest run — all pass
+bun run build               # vite build → dist/
+node scripts/check-size.js  # bundle budget gate (HC-005)
+```
+
+Exact script names follow the generated `package.json` — reconcile on adoption.
+The non-command gates are unchanged: SIGN CONVENTION and DESIGN review per
+CLAUDE.md §2.3, and the SKILL.md security checklist. **CLAUDE.md §3's gate
+command list and its HC table must be amended by the Governor to match this
+section** (tracked as migration step M7).
+
+---
+
+## Build & Deployment
+
+### Pipeline
+
+```
+bun run build  →  dist/            # hashed JS/CSS chunks, index.html, fonts, assets
+check-size     →  budget gate      # HC-005
+Docker build   →  nginx:alpine + COPY dist/ /usr/share/nginx/html/
+deploy.sh      →  upload + docker compose up on VPS (behind Caddy)
+```
+
+Replaces `scripts/build.js` (retired 2026-07-29 — inlining is meaningless with a
+bundler). `deploy.sh` changes: upload the whole `dist/` directory instead of one
+file; replace the 200 KB check with the size gate; the Dockerfile copies `dist/`
+instead of `dist/dashboard.html`. Note the pre-existing mismatch between
+`docker-compose.yml` (pulls `ghcr.io/wluyckx/energy-dashboard:latest`) and
+`deploy.sh` (`docker compose build` on the VPS) — the Operator's
+artifact-provenance rule (CLAUDE.md §2.5) requires resolving this to one path
+during migration (M6).
+
+### Artifact shape & size budget (replaces the 200 KB rule)
+
+The artifact is a static `dist/` directory. Provisional budgets, **to be
+calibrated against the first real build** and then pinned in `check-size.js`:
+
+| Metric | Budget (gzipped) |
+|--------|------------------|
+| JS on the initial `/` route | ≤ 300 KB |
+| Total JS (all routes, code-split) | ≤ 450 KB |
+| CSS | ≤ 50 KB |
+| Fonts (woff2, both families) | ≤ 200 KB |
+
+Detail routes (`/grid`, `/capacity`) and the chart library should be code-split
+behind route chunks where the framework makes it natural. The budget exists for
+the same reason the 200 KB rule did — this loads over mobile data in a WebView —
+but measures what actually matters now: compressed transfer size.
+
+### nginx
+
+`try_files $uri /index.html` (already present) is the SPA fallback for pushed
+routes. Caching changes for the multi-file artifact: `index.html` stays
+`no-cache`; hashed assets (`/assets/*`) get `Cache-Control: public, max-age=31536000, immutable`.
+`/health` endpoint unchanged. Gzip already configured; keep `image/svg+xml` and
+add `font/woff2` exclusion (woff2 is pre-compressed).
+
+### CSP (tightened — fixes two standing weaknesses)
+
+The current CSP allows `script-src 'unsafe-inline'` and loads Chart.js from an
+unpinned CDN with no SRI. The new build emits only hashed external scripts and
+self-hosts fonts, so:
+
+```
+default-src 'self';
+script-src 'self';
+style-src 'self' 'unsafe-inline';
+font-src 'self';
+connect-src 'self' ${CSP_CONNECT_HOSTS};
+img-src 'self' data:;
+frame-ancestors 'self'
+```
+
+- `script-src` drops `'unsafe-inline'` and `cdn.jsdelivr.net` entirely. If the
+  generated `index.html` contains a framework bootstrap inline script, prefer a
+  build option that externalizes it; a CSP hash for that one script is the
+  fallback — never a blanket `'unsafe-inline'`.
+- `style-src 'unsafe-inline'` is retained for now: React/charting set inline
+  `style` attributes. Tightening to `style-src-attr` is a post-migration audit
+  item (R5).
+- `${CSP_CONNECT_HOSTS}` remains the env-templated first-party API host list —
+  the same list the base-URL allowlist validates against.
+- Google Fonts (`fonts.googleapis.com` / `fonts.gstatic.com`) entries are removed.
+
+### Environments
+
+| Environment | Command / URL | Purpose |
+|-------------|---------------|---------|
+| Development | `bun run dev` (Vite dev server) | HMR, mock mode via `?mock=true` |
+| Production | `dist/` served by nginx container behind Caddy | `https://dashboard.energy.wimluyckx.dev` |
+
+---
+
+## Hard Constraints
+
+HC numbering is continuous with the previous document; retired numbers are not
+reused. (HC-004 previously lived only in CLAUDE.md — this document now owns it.)
+
+### HC-001: Single-File Delivery — **RETIRED 2026-07-29**
+Superseded by ADR-005/ADR-006 and HC-005. The constraint existed because there
+was no server to serve multiple files; we have served the dashboard from our own
+nginx container since the Docker deployment landed, so the premise is gone. The
+budget discipline it enforced survives as HC-005's bundle budget.
+
+### HC-002: Secure Credential Delivery
+**Constraint**: Bearer tokens are delivered via the WebView postMessage bridge and
+held in JS memory only. URL-param tokens are a dev/test fallback scrubbed
+immediately via `history.replaceState`. In proxy mode (no token), auth rides on
+cookies via `credentials: 'include'` and the dashboard never sees a token.
+**Base URLs must pass host-allowlist validation before any request is made** —
+an `https://` prefix check alone is a vulnerability in both auth modes.
+**Forbidden**: hardcoded tokens; tokens in localStorage/sessionStorage/cookies;
+tokens in console logs; tokens remaining in the URL bar; requests to
+non-allowlisted hosts.
+
+### HC-003: Graceful Degradation
+**Constraint**: never a blank screen. Every component has defined skeleton,
+stale, and offline states; last-known values are cached and shown with staleness
+indicators; mock data is the fallback of last resort; `mock=true` always works
+without credentials.
+**Forbidden**: blank screens, raw error strings in the UI, unhandled exceptions
+crashing the app (wrap routes in error boundaries), removing the mock module
+from the production bundle.
+
+### HC-004: Dark Mode Only
+**Constraint**: one theme. No light mode, no toggle, no `prefers-color-scheme`
+switching, no theme URL parameter, and — new-stack specific — **no `.dark`/light
+dual palette in the Tailwind/shadcn theme**: the single token set is the theme.
+Rationale in ADR-004.
+
+### HC-005: Static Artifact, No Server Runtime (new)
+**Constraint**: the production artifact is the static `dist/` directory served by
+nginx. No Node/Bun process, SSR, server functions, or API routes in production
+(ADR-006). Bundle budgets per Build & Deployment are enforced by
+`scripts/check-size.js` as a release gate.
+**Forbidden**: TanStack Start server functions, runtime environment variables
+(config arrives via URL params/bridge only), any deploy shape that requires a JS
+runtime on the VPS.
+
+### HC-006: API Contracts Are Captured, Never Guessed (new)
+**Constraint**: no code may read an API field that is not documented in this
+file's API Integration section (or `docs/project_idea.md` for legacy detail).
+An undocumented contract blocks the story (`api_contract_unknown`) until the
+contract is captured from the live API and recorded here.
+**Rationale**: the guessed P1-series fields in `p1-card.js` shipped a
+NaN-rendering chart (Open Risk R1). Sungrow `export_power_w` is the standing
+example of a field that exists but must never be read (Sign Convention
+Reference).
+
+### Domain rules (bind every change)
+
+- Poll cadences exactly as specified (5 s / 60 s / 5 min); polling pauses when
+  the document is hidden; failures back off.
+- All API communication over HTTPS.
+- Sign conventions per the Sign Convention Reference — non-waivable review gate.
+- Colors referenced by token, never literal hex; typography and spacing per
+  FE_design.md; energy values with correct units and precision.
+- Animations respect `prefers-reduced-motion`; touch targets ≥ 44×44 px;
+  number transitions animate (~400 ms ease-out), never snap.
+
+---
+
+## Architecture Decision Records (ADRs)
+
+### ADR-001: Vanilla JavaScript Over Framework — **SUPERSEDED**
+**Status**: Superseded by ADR-005, 2026-07-29 (originally Approved 2026-02-15)
+The premises (200 KB inlined budget, no build step) were retired with HC-001.
+The manual-DOM approach also demonstrably under-delivered the interaction spec
+(no counting numbers, no skeletons, no per-section staleness) — the cost of "no
+framework" landed on UX quality. Original text in `Architecture.md.backup`.
+
+### ADR-002: Chart.js via CDN — **SUPERSEDED**
+**Status**: Superseded by ADR-007, 2026-07-29 (originally Approved 2026-02-15)
+CDN delivery existed to stay under the inlined-payload budget. It cost us an
+unpinned external runtime dependency with no SRI (a standing security finding)
+and a charts-dead-when-offline failure mode. With a bundler, both problems
+dissolve by bundling.
+
+### ADR-003: SVG for Power Flow Diagram — **SUPERSEDED (substance restated)**
+**Status**: Superseded by ADR-008, 2026-07-29 (originally Approved 2026-02-15)
+The choice of SVG was correct and survives; the vanilla `createElementNS` DOM
+mechanics do not. ADR-008 restates the decision for the React stack.
+
+### ADR-004: Dark Mode Only — **REAFFIRMED**
+**Status**: Approved 2026-02-15, reaffirmed 2026-07-29 for the new stack
+Unchanged in substance; consequences updated: the shadcn/Tailwind theme defines
+exactly one palette block; no `.dark` class mechanics. Now enforced as HC-004 in
+this document (previously only in CLAUDE.md).
+
+---
+
+### ADR-005: Adopt the Lovable-Generated React Frontend As-Is
+**Status**: Approved
+**Date**: 2026-07-29
+
+**Context**: v1 (vanilla JS, single file) is functionally complete but
+under-delivers the interaction spec, and iterating manual-DOM UI is slow. The
+frontend was re-designed in Lovable (project "Energy Watch", stack
+`tanstack_start_ts_current`): TanStack Start (React) + TypeScript + Vite +
+Tailwind + shadcn/ui, Bun package manager, file-based routing. The decision to
+adopt the generated screens as-is has been made by the owner.
+
+**Decision**: The Lovable output becomes the frontend. The repo re-bases on its
+project layout. Vanilla modules are frozen in `legacy/` and mined for domain
+logic and tests, then deleted. HC-001 is retired; `scripts/build.js` is retired;
+ADR-001 is superseded.
+
+**Consequences**:
+- A dependency tree exists; the lockfile is the approved baseline and new
+  runtime deps are gated (Tech Stack §Dependency Gate).
+- Bun is adopted as the package manager per the generated project. (Vite runs
+  identically under Node; this is a toolchain preference, not a runtime one.)
+- All hard-won domain behavior must be actively ported — sign conventions,
+  degradation states, credential handling — because the generated screens were
+  built against a mock layer, not the real APIs.
+- Governance documents referencing the old gates (CLAUDE.md §3 commands, HC
+  table) require amendment (M7).
+
+### ADR-006: Static SPA Build — No Server Runtime in Production
+**Status**: Approved
+**Date**: 2026-07-29
+
+**Context**: TanStack Start is a full-stack framework with SSR and server
+functions. This app runs inside a Flutter WebView, is served today as static
+files by nginx in Docker behind Caddy, and has **no backend of its own** — both
+data APIs are external services the client calls directly.
+
+**Decision**: Build as a **client-only SPA** (TanStack Start SPA/prerender mode —
+exact `vite.config.ts` flag per the generated framework version, TBC). The
+production artifact is static `dist/`; nginx serves it with an `index.html`
+fallback. No Node/Bun process in production. Server features of the framework
+are off-limits (HC-005).
+
+**Alternatives considered**:
+| Option | Pros | Cons |
+|--------|------|------|
+| Static SPA (chosen) | Keeps proven nginx/Docker/Caddy deploy; zero new runtime to patch/monitor; no SSR failure mode when offline; WebView has no SEO/first-paint-HTML needs; server functions have literally no job here | Blank-ish first paint until JS loads (mitigated: skeleton states are mandatory anyway) |
+| Node/Bun SSR runtime | Framework-default; faster first contentful paint | New production runtime + attack surface; server becomes a single point of failure for a dashboard whose whole ethos is degrade-gracefully; nothing server-side to compute |
+| SSG + hydration middle ground | Pre-rendered shell | Gains nothing over SPA-with-skeletons for an all-dynamic dashboard |
+
+**Consequences**: deployment pipeline stays nginx-shaped (M6 updates Dockerfile/
+deploy.sh for the multi-file artifact); config cannot use server-side env vars —
+URL params + bridge remain the only config channels; if a server-side need ever
+emerges (e.g., token exchange), that is a new ADR, not a quiet flag flip.
+
+### ADR-007: Bundled Charting Library (No CDN Resources of Any Kind)
+**Status**: Approved
+**Date**: 2026-07-29
+**Supersedes**: ADR-002
+
+**Context**: The Lovable output ships its own charting (expected: Recharts via
+shadcn/ui chart primitives — **to be confirmed** against the delivered code).
+The CDN rationale from ADR-002 is gone with HC-001.
+
+**Decision**: Use whatever charting library the Lovable screens are built on,
+bundled from the lockfile. **No CDN-loaded scripts, styles, or fonts anywhere in
+the app** — the CSP enforces this (`script-src 'self'`). If the delivered
+library proves too heavy for the HC-005 budget, replacement with a lighter
+bundled option is an amendment to this ADR, not a return to CDN.
+
+**Consequences**: charts work offline (fixes a v1 degradation gap); no SRI
+management; chart bundle weight is now our budget problem — measure at M3 and
+code-split detail routes.
+
+### ADR-008: Power Flow Diagram as Inline SVG in React
+**Status**: Approved
+**Date**: 2026-07-29
+**Supersedes**: ADR-003 (restates its substance for the new stack)
+
+**Decision**: The hero diagram remains inline SVG — now JSX-rendered: node
+positions, path geometry, and dash animation as React components driven by
+`computeFlows` output props. CSS/SMIL dash animation, ~3 s loops, direction-flip
+flash ~300 ms, all under `prefers-reduced-motion` guards.
+
+**Rationale (unchanged)**: retina-sharp scaling, GPU-friendly line animation,
+DOM-addressable elements — now with declarative data binding instead of manual
+attribute twiddling.
+
+**Consequences**: flow math stays out of the components (pure functions in
+`src/lib/energy/flows.ts`) so DP-003 ("flow direction is sacred") is enforced by
+unit tests, not visual inspection.
+
+### ADR-009: Dual Authentication Modes with Base-URL Allowlist
+**Status**: Approved
+**Date**: 2026-07-29 (retro-documents the proxy mode shipped 2026-03-01;
+adds the allowlist requirement)
+
+**Context**: Proxy mode (cookie auth via Caddy token injection) was implemented
+in `api-client.js` and `app.js` on 2026-03-01 but never recorded in this
+document. Reviewing it now surfaces a real weakness: base URLs come from URL
+parameters and are validated only for an `https://` prefix, so a crafted link
+could direct credentialed requests (cookies in proxy mode, Bearer headers in
+bridge mode) to an arbitrary host.
+
+**Decision**: Both auth modes are first-class and selected per-API by token
+presence (token ⇒ Bearer header; no token ⇒ `credentials: 'include'`). Base
+URLs **must** be validated against a build-time host allowlist — the same host
+set templated into CSP `connect-src` — before any request. Validation failure is
+a config error (HC-003 error panel), not a silent fallback.
+
+**Consequences**: `src/lib/api/validate.ts` owns the allowlist; adding an API
+host is a code change + CSP env change, reviewed together; the legacy
+prefix-only check is recorded as a known vulnerability until the port lands (R3).
+
+---
+
+## Sign Convention Reference
+
+The one table this project cannot afford to get wrong. Every field read in
+`src/lib/energy/` must match this table; the SIGN CONVENTION review gate
+(CLAUDE.md §2.3) is mandatory and non-waivable for any story touching flow or
+balance logic.
+
+| Field | Positive means | Negative means | Notes |
+|-------|---------------|----------------|-------|
+| P1 `power_w` | Importing from grid | Exporting to grid | **Authoritative source for grid direction** |
+| P1 `import_power_w` | Importing (always >= 0) | N/A | |
+| Sungrow `battery_power_w` | Charging | Discharging | Source: register 5213 S16, scale=−1 (confirmed 2026-02-18) |
+| Sungrow `battery_soc_pct` | N/A (0–100 %) | N/A | **Field name has `_pct` suffix.** Source: register 13022 U16 scale=0.1 (confirmed 2026-02-18). Leads GoSungrow cloud by ~15 min. |
+| Sungrow `export_power_w` | Exporting to grid | Importing from grid | **Always 0 on this WiNet-S firmware — never read it.** Use P1 `power_w` for grid direction (confirmed 2026-02-18) |
+| Sungrow `pv_power_w` | Producing (always >= 0) | N/A | AC output power (register 5016), not DC — confirmed 2026-02-18 |
+| Sungrow `load_power_w` | Consuming (always >= 0) | N/A | House consumption. Source: register 13007 U16 (confirmed 2026-02-18) |
+
+These conventions are also written into the doc comments of
+`src/lib/energy/types.ts` so they travel with the types.
+
+---
+
+## Operational Assumptions
+
+1. **Runtime**: modern mobile WebView (Chrome/WebView 100+, WKWebView 15+);
+   tablet/desktop browsers for occasional checks.
+2. **Storage**: none persistent — all state in memory, refreshed on load.
+3. **Memory**: < 100 MB total including React and the chart library.
+4. **Network**: WiFi or mobile data; APIs on the public internet with valid TLS.
+5. **Serving**: nginx container on the VPS `edge` network behind Caddy;
+   `/health` returns 200 for container health checks.
+
+---
+
+## Open Risks & Migration Plan
+
+### Risks
+
+- **R1 — P1 series bucket contract is unknown (blocking).** No document defines
+  the field names inside P1 `/v1/series` buckets; `project_idea.md` explicitly
+  says "assume similar structure to Sungrow" — and acting on that assumption
+  shipped a bug: `legacy/src/p1-card.js` reads `energy_import_kwh` /
+  `avg_power_w` from buckets where they don't exist, rendering NaN bars. **The
+  contract must be captured from the live API and recorded in this document
+  before any P1-series feature (Grid detail Day/Month/Year tabs) is built**
+  (HC-006).
+- **R2 — Lovable output unverified in detail.** Stack and file list are
+  confirmed; component filenames, the chart library, and presence of TanStack
+  Query/zod are expected-but-unconfirmed. Every "TBC" in this document resolves
+  at M1; discrepancies amend this file, not silently the code.
+- **R3 — Base-URL validation is prefix-only today.** The live deployment carries
+  the vulnerability described in ADR-009 until the allowlist port lands (M4).
+- **R4 — Bundle budget uncalibrated.** HC-005 numbers are provisional until the
+  first real `vite build` (M3). If the delivered chart library blows the budget,
+  ADR-007 amendment decides the replacement.
+- **R5 — CSP `style-src 'unsafe-inline'` retained.** Inline style attributes
+  from React/charts require it initially; audit and tighten (`style-src-attr`)
+  post-migration.
+- **R6 — Flutter bridge integration must be re-verified end-to-end.** The
+  bootstrap handshake, `'null'`-origin acceptance, and `dashboardReady` dispatch
+  are re-implemented in React; test in a real WebView before cutover, including
+  visibility-gated polling behavior when the app backgrounds.
+- **R7 — Legacy `computeFlows` reads dead `export_power_w`** (solar→grid never
+  renders). Fixed at port time with a pinning test (Data Flow §3, Testing §1) —
+  do not port the defect.
+- **R8 — Deploy provenance mismatch** between ghcr image pull and on-VPS build
+  paths (Build & Deployment); Operator contract requires one provable path.
+
+### Migration plan
+
+| Step | Work | Exit criterion |
+|------|------|----------------|
+| M1 | Import Lovable output into the repo; freeze vanilla code in `legacy/`; resolve all TBCs against the delivered code; amend this document | App runs via `bun run dev` in mock mode; TBCs resolved |
+| M2 | Build the integration seam: `lib/energy` (port + fix R7), `lib/api`, `data/` with `EnergyDataSource`; wire `useEnergyData()` into the generated screens | Screens render from `mock.ts` through the seam |
+| M3 | First production build; calibrate and pin HC-005 budgets in `check-size.js` | Budget gate green |
+| M4 | Port config/bridge with **allowlist validation** (closes R3); live mode against real APIs in bridge and proxy modes | Live data on all `/` sections |
+| M5 | Port test suites per Testing Strategy; visibility gating + backoff in the data layer | Gates green; sign-convention tests pass incl. R7 pin |
+| M6 | Update Dockerfile/nginx.conf/deploy.sh for multi-file artifact + new CSP; resolve R8; deploy; verify in Flutter WebView (R6) | Production cutover; `/health` + live flow verified |
+| M7 | Governor amends CLAUDE.md (§3 gate commands, HC table); capture P1 series contract when live capture is convenient (unblocks Grid detail) | Governance docs consistent; R1 closed or explicitly parked |
+| M8 | Delete `legacy/`; tighten CSP style-src if audit allows (R5) | Repo contains one implementation |
+
+`/grid` Day/Month/Year and any other R1-dependent feature ship **after** R1
+closes, regardless of migration progress.
+
+---
+
+## Related Documents
+
+- `CLAUDE.md`: governance operating model — roles, contracts, review gates
+- `docs/REDESIGN_BRIEF.md`: the brief the Lovable screens were generated from (screen inventory, data contract, integration seam)
+- `docs/FE_design.md`: visual token system and component anatomy (tokens binding; screens now authoritative in the Lovable output)
+- `docs/BACKLOG.md`: stories, acceptance criteria, progress
+- `docs/project_idea.md`: original API contract detail (register-level reference)
+- `SKILL.md`: security guidelines (binds every role)
+- `Architecture.md.backup`: the superseded 2026-02-15 architecture, kept verbatim
