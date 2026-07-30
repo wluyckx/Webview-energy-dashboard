@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>11</done>
-  <progress>37%</progress>
+  <done>12</done>
+  <progress>40%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E04 done (Hestia STORY-091, PR #5) — the domain lib lands React-free with the corrected sign conventions and captured types; the D1 invariant now exists in both suites, closing the both-suites requirement early. 35 tests RED-first, green first pass.</entry>
     <entry date="2026-07-30">RW-E03 done (Hestia STORY-090, PR #4) — primitives ported with i18n; the scoped-cascade colour bridge lands: 19 new @theme names inert outside the island, two colliding names cascade-overridden under .energy. Donor class names survive near-verbatim.</entry>
     <entry date="2026-07-30">RW-E02 done (Hestia STORY-089, PR #3) — the dark island design layer lands: scoped tokens, utilities, motion with exact timings, island-scoped reduced-motion. Phase 14 defined in Hestia (STORY-089..109 mapping RW-E02..E22). DEC-01 resolved: grid-detail colours promoted to named FE_design tokens.</entry>
     <entry date="2026-07-30">RW-E01 done (in Hestia, commit 8923ed1) — ADR-017 native /energy route + ADR-018 recharts. DEC-02 (fonts: system stack + tabular-nums; Hestia ships no custom fonts) and DEC-03 (cn(): local helper; no clsx/tailwind-merge exists there) resolved with local evidence. RW-E02 is now the port entry point.</entry>
@@ -501,7 +502,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>~330 lines total. Pure copy per the inventory.</notes>
 </story>
 
-<story id="RW-E04" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E04" status="done" complexity="M" lane="E" model_lane="Fable" note="executed 2026-07-30 in Hestia as STORY-091 (PR #5): flows/balance ported ALREADY CORRECT with full input guarding (beyond the legacy, which accepted sibling-guard debt); geometry constants exported for the hero story; types completed from the RW-C01 captured contracts with the same-name and dead-field traps documented at the type; the D1 invariant now exists in both suites — AC1-AC8 hold, with AC2 amended in execution: CHART_COLORS deliberately omitted, RW-E15 owns the palette.">
   <title>Port the energy domain lib — React-free, test-pinned</title>
   <dependencies>RW-E01</dependencies>
   <description>
