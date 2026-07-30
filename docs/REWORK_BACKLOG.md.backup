@@ -18,11 +18,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <supersedes_as_active>docs/BACKLOG.md (Phases 1–5, complete)</supersedes_as_active>
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
-  <total_stories>29</total_stories>
-  <done>1</done>
-  <progress>3%</progress>
+  <total_stories>28</total_stories>
+  <done>0</done>
+  <progress>0%</progress>
   <changelog>
-    <entry date="2026-07-30">RW-M01 done — all four maintenance-lane gates green on main for the first time (lint 0/0, format clean, 265 tests, 130.7 KB build).</entry>
     <entry date="2026-07-30">Created from Architecture.md extraction plan E1–E7 + ADR-012 maintenance lane. Charting settled as Recharts (ADR-007 amendment 2), so chart stories are unblocked rather than pending a decision.</entry>
   </changelog>
 </metadata>
@@ -42,7 +41,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <lane id="E" name="Extraction" repo="/home/wlc3xkl/Personal-Assistant-App (Hestia)" path="src/features/energy/ (proposed)" toolchain="Hestia's Vite · Vitest · ESLint · npm" governance="HESTIA'S Governor">
     The port itself. **This repo's Governor tracks these stories but does not
     gate them and does not spawn Builders into Hestia's repo.** Each E-story is
-    listed here because decommission (RW-E20) is gated on the set completing;
+    listed here because decommission (RW-E19) is gated on the set completing;
     the Story Contract for an E-story is drafted and executed under Hestia's
     CLAUDE.md, against Hestia's gates and its i18n rule.
   </lane>
@@ -78,7 +77,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <constraint id="HC-002" ref="Architecture.md">No tokens in the client, in any form. Caddy injects Bearer tokens server-side; the client sends same-origin requests with the Hestia session cookie only. Token-handling code is forbidden outright.</constraint>
   <constraint id="HC-003" ref="Architecture.md">Graceful degradation: skeleton / stale / offline are mandated states, not edge cases. Never NaN or undefined rendered as data. Mock mode ships in production as the fallback of last resort.</constraint>
   <constraint id="HC-004" ref="Architecture.md">Dark mode only, scoped: the energy feature is a dark island inside light-themed Hestia. Tokens must not leak either direction.</constraint>
-  <constraint id="HC-005" ref="Architecture.md">Static artifact, no server runtime. Budgets apply to the Hestia /energy route chunk, pinned at RW-E17 from the first real measurement.</constraint>
+  <constraint id="HC-005" ref="Architecture.md">Static artifact, no server runtime. Budgets apply to the Hestia /energy route chunk, pinned at RW-E16 from the first real measurement.</constraint>
   <constraint id="HC-006" ref="Architecture.md">API contracts are captured, never guessed. An undocumented shape is a blocking escalation (`api_contract_unknown`).</constraint>
   <constraint id="DP-003" ref="Architecture.md">Flow direction is sacred — a wrong direction is worse than no data. Non-waivable review gate on every flow/balance story.</constraint>
 </constraints>
@@ -160,18 +159,17 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <entry priority="21" story="RW-E14" title="Cache-on-failure and staleness thresholds" complexity="M" deps="RW-E13" lane="E" />
   </tier>
 
-  <tier name="Charts and detail screens (lane E, Recharts)" description="ADR-007 Option A — foundation once, then port the four welded views.">
-    <entry priority="22" story="RW-E15" title="Chart foundation — token bridge, test harness, measurement, lever" complexity="M" deps="RW-E11, RW-E14" lane="E" />
-    <entry priority="23" story="RW-E16" title="Power timeline (24h, dual axis)" complexity="L" deps="RW-E15" lane="E" />
-    <entry priority="24" story="RW-E17" title="Monthly overview" complexity="S" deps="RW-E15" lane="E" />
-    <entry priority="25" story="RW-E18" title="Capacity peak screen" complexity="L" deps="RW-E14, RW-E15" lane="E" />
-    <entry priority="26" story="RW-E19" title="Grid detail — Live tab only" complexity="M" deps="RW-E14, RW-E15" lane="E" />
-    <entry priority="27" story="RW-E20" title="Grid detail — Day/Month/Year (BLOCKED by RW-C01)" complexity="M" deps="RW-C01, RW-E19" lane="E" />
+  <tier name="Charts and detail screens (lane E, Recharts)" description="ADR-007 Option A — port the four welded views.">
+    <entry priority="22" story="RW-E15" title="Power timeline (24h, dual axis)" complexity="L" deps="RW-E11, RW-E14" lane="E" />
+    <entry priority="23" story="RW-E16" title="Monthly overview + bundle measurement and budget pin" complexity="M" deps="RW-E15" lane="E" />
+    <entry priority="24" story="RW-E17" title="Capacity peak screen" complexity="L" deps="RW-E14, RW-E15" lane="E" />
+    <entry priority="25" story="RW-E18" title="Grid detail — Live tab only" complexity="M" deps="RW-E14, RW-E15" lane="E" />
+    <entry priority="26" story="RW-E19" title="Grid detail — Day/Month/Year (BLOCKED by RW-C01)" complexity="M" deps="RW-C01, RW-E18" lane="E" />
   </tier>
 
   <tier name="Close out" description="Knowledge must outlive this repo (R10) before it is archived.">
-    <entry priority="28" story="RW-E21" title="Test and knowledge transfer into Hestia" complexity="M" deps="RW-E18, RW-E19" lane="E" />
-    <entry priority="29" story="RW-E22" title="Cutover, iframe removal, decommission, archive" complexity="L" deps="RW-E21, RW-M02, RW-M03, RW-M04, RW-M05" lane="E" />
+    <entry priority="27" story="RW-E20" title="Test and knowledge transfer into Hestia" complexity="M" deps="RW-E17, RW-E18" lane="E" />
+    <entry priority="28" story="RW-E21" title="Cutover, iframe removal, decommission, archive" complexity="L" deps="RW-E20, RW-M02, RW-M03, RW-M04, RW-M05" lane="E" />
   </tier>
 </priority_order>
 
@@ -179,7 +177,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
 <!-- LANE M — MAINTENANCE (this repo, ADR-012)                     -->
 <!-- ============================================================ -->
 
-<story id="RW-M01" status="done" complexity="S" tdd="not-applicable" lane="M" model_lane="Opus" log="docs/stories/RW-M01.md">
+<story id="RW-M01" status="open" complexity="S" tdd="not-applicable" lane="M" model_lane="Opus">
   <title>Clean the red gates on main</title>
   <dependencies>None</dependencies>
   <description>
@@ -222,7 +220,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </description>
   <design_intent>DP-003 Flow Direction is Sacred. Architecture.md Sign Convention Reference.</design_intent>
   <acceptance_criteria>
-    <ac id="AC1">With `p1.power_w = -2000` and `sungrow.export_power_w = 0`, `computeFlows` reports a **non-zero** solar→grid flow. This is the pinning invariant; it must also exist in Hestia's suite (RW-E04 / RW-E21).</ac>
+    <ac id="AC1">With `p1.power_w = -2000` and `sungrow.export_power_w = 0`, `computeFlows` reports a **non-zero** solar→grid flow. This is the pinning invariant; it must also exist in Hestia's suite (RW-E04 / RW-E20).</ac>
     <ac id="AC2">Export magnitude is derived from `|p1.power_w|` when `p1.power_w &lt; 0`, and is zero when `p1.power_w &gt;= 0`.</ac>
     <ac id="AC3">With `p1.power_w = +1500`, solar→grid is exactly 0 and grid→home is 1500 W — direction never both ways at once.</ac>
     <ac id="AC4">`sungrow.export_power_w` is not read anywhere in src/power-flow.js after this story (grep-verifiable), and no other module starts reading it.</ac>
@@ -348,8 +346,8 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <ac id="AC3">The Sungrow series bucket field names are re-verified in the same exercise and any drift from the documented shape is recorded.</ac>
     <ac id="AC4">The `GridBucket` invention in lovable/src/types/energy.ts is annotated as superseded by the captured shape — annotation only; lovable/ stays read-only reference and no code is ported from it here.</ac>
     <ac id="AC5">Fixtures for the maintenance-lane and Hestia suites are derived from the captured shape, with values scrubbed of anything identifying: **no raw meter dumps, no internal IPs, no hostnames, no Tailscale addresses** in the repo (public remote). Raw capture output stays in gitignored scratch.</ac>
-    <ac id="AC6">R1 is marked closed in Architecture.md's Open Risks table, and RW-M04's D3 gate and RW-E20 are noted as unblocked.</ac>
-    <ac id="AC7">The captured contract is written in a form transferable to Hestia verbatim in substance (RW-E21 / R10).</ac>
+    <ac id="AC6">R1 is marked closed in Architecture.md's Open Risks table, and RW-M04's D3 gate and RW-E19 are noted as unblocked.</ac>
+    <ac id="AC7">The captured contract is written in a form transferable to Hestia verbatim in substance (RW-E20 / R10).</ac>
   </acceptance_criteria>
   <allowed_scope>
     <file>Architecture.md (API Integration, Open Risks)</file>
@@ -395,14 +393,14 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <out_of_scope>Any src/ change. Any import of a staged file. Any edit to a staged file's logic. Re-opening the Lovable project as a build pipeline (DEC-05).</out_of_scope>
   <notes>
     Blocks nothing formally but precedes RW-E03, RW-E05, RW-E06, RW-E08,
-    RW-E09, RW-E10, RW-E16, RW-E17, RW-E18, RW-E19 in practice — they all read
+    RW-E09, RW-E10, RW-E15, RW-E16, RW-E17, RW-E18 in practice — they all read
     files this story stages. Do it in the same sitting as RW-C01 if convenient.
   </notes>
 </story>
 
 <!-- ============================================================ -->
 <!-- LANE E — EXTRACTION (Hestia's repo, Hestia's governance)      -->
-<!-- Tracked here because RW-E22 (decommission) is gated on them.  -->
+<!-- Tracked here because RW-E21 (decommission) is gated on them.  -->
 <!-- Story Contracts are drafted and executed under Hestia's       -->
 <!-- CLAUDE.md, against Hestia's gates, thresholds, and i18n rule. -->
 <!-- ============================================================ -->
@@ -616,63 +614,11 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E15" status="open" complexity="M" lane="E" model_lane="Fable">
-  <title>Chart foundation — token bridge, test harness, measurement, and the fallback lever</title>
-  <dependencies>RW-E11, RW-E14</dependencies>
-  <description>
-    Recharts is decided (ADR-007 amendment 2), but its costs are **permanent
-    rather than one-time**: colours must cross from CSS custom properties into
-    JS props, `ResponsiveContainer` measures 0×0 under jsdom so naive chart
-    tests assert against an empty SVG, and the bundle weight is real. Left
-    implicit, each of the four view stories improvises its own answer and they
-    drift. This story solves all of it once, before the first view exists.
-
-    It is also where the ADR-007 over-budget lever is made concrete, so that
-    "if the measurement is disproportionate the remedy is Recharts-side" is a
-    pre-agreed procedure rather than a mid-port argument.
-  </description>
-  <acceptance_criteria>
-    <ac id="AC1">**Token bridge, single source of truth.** One TS palette module holds every chart colour; the energy stylesheet's CSS custom properties are derived from it (or generated from it) rather than declared twice by hand. Recharts receives JS colour values from that module — no component contains a colour literal.</ac>
-    <ac id="AC2">**A test asserts the palette and the CSS custom properties match**, so a future edit to one side fails the suite instead of silently drifting. This test is the price of Recharts needing JS colours; it is required, not optional.</ac>
-    <ac id="AC3">`CHART_COLORS` from the Lovable `energy-format.ts` is fully absorbed into the palette module; the original hex literals (`#F6B93B`, `#6C5CE7`, `#A29BFE`, `#E17055`, `#00B894`, `#DFE6E9`, `#1E2A3A`, `#4A5568`, `#74B9FF`) appear nowhere in Hestia's source after this story — grep-verifiable. Each maps to a named FE_design token, and any that has no token counterpart is escalated to the Architect hat (DEC-01), not invented.</ac>
-    <ac id="AC4">**`ResponsiveContainer` is mocked to a fixed-size element in `__tests__/setup.ts`**, so chart tests render measurable SVG under jsdom. The mock's dimensions are a named constant, not a magic number, and the mock is documented as a jsdom limitation workaround rather than a preference.</ac>
-    <ac id="AC5">**The test contract for every chart story is stated here and reused**: real assertions belong on the pure data-shaping functions in `lib/energy/` (sign placement around zero, bucket mapping, empty/gap handling); chart-level tests only smoke-test that the expected series and axes rendered. A chart test that asserts on SVG path coordinates is a defect in the test, not a feature — DP-003 is proven upstream, per Architecture.md's "flow math stays in pure functions so DP-003 is enforced by unit tests, not visual inspection".</ac>
-    <ac id="AC6">A demonstration test proves the harness works: a trivial chart rendered under the mocked container yields a non-empty SVG with the expected number of series elements. Without this, AC4 is unverified and every later chart test may be asserting against nothing.</ac>
-    <ac id="AC7">**Shared chart chrome built once**: the custom multi-series tooltip, axis/grid defaults, the empty/stale/offline chart states (reusing RW-E03's primitives), and a `role="img"` + `aria-label` treatment with a visually-hidden data summary for screen readers. The four view stories consume these; none re-implements them.</ac>
-    <ac id="AC8">**Reduced motion is handled centrally**: Recharts animates by default, so `isAnimationActive` is driven from `usePrefersReducedMotion()` in the shared layer rather than threaded through each view. Asserted in both states.</ac>
-    <ac id="AC9">**Bundle measured here, at the first Recharts import — not after two views land.** Report the gzipped `/energy` route chunk with the Recharts + d3 share broken out, and confirm Hestia's entry chunk is unchanged in size (proof the code-split holds). The assessment's ~140 KB gz is an estimate; this is the measurement that closes R9.</ac>
-    <ac id="AC10">**The route-chunk budget is pinned** in Hestia's tooling from AC9's number, and the gate fails when exceeded (HC-005). Pinned from the first real measurement, per HC-005's wording.</ac>
-    <ac id="AC11">**The fallback lever is recorded as a decision, not a discussion.** If AC9's measurement is judged disproportionate, the pre-agreed remedy is Recharts-side per ADR-007: narrower imports, a nested lazy boundary around the chart cluster, or hand-rolling the monthly overview and the peaks chart (~170 lines of plain bars, with `SpendingBarChart.tsx` as the existing idiom). Record which lever was pulled, or that none was needed. The charting decision itself is not reopened.</ac>
-    <ac id="AC12">**Nested lazy boundary around the chart cluster** so the power-flow hero and KPI strip paint before Recharts loads — DP-004 wants flow, SoC and solar glanceable without scrolling, and the charts sit below the fold. Hestia has no `lazy()`/`Suspense` precedent, so this story introduces the pattern: it ships with a skeleton fallback (RW-E03) and an error boundary, and both are tested.</ac>
-    <ac id="AC13">Hestia's full gate set green: lint, format, `tsc --noEmit`, vitest, build.</ac>
-  </acceptance_criteria>
-  <allowed_scope>
-    <file>the energy feature's chart palette module (new)</file>
-    <file>the shared chart chrome: tooltip, axis defaults, states, a11y wrapper (new)</file>
-    <file>__tests__/setup.ts (ResponsiveContainer mock)</file>
-    <file>the energy stylesheet (custom properties derived from the palette)</file>
-    <file>Hestia's bundle-budget configuration</file>
-    <file>package.json / lockfile (the recharts addition itself)</file>
-  </allowed_scope>
-  <out_of_scope>Any of the four chart views — they are RW-E16, RW-E17, RW-E18, RW-E19. Any change to the pure functions in lib/energy/ (RW-E04 owns those). Reopening the Recharts decision.</out_of_scope>
-  <notes>
-    - Rationale for Recharts over Visx, recorded 2026-07-30: the correctness-critical
-      logic lives outside the chart by design (RW-E04), which is where Visx's
-      SVG-assertability advantage would have paid off; the ~520 existing lines make
-      Recharts a ~1-day port against a ~3-day rewrite landing on the riskiest
-      interaction; `stackOffset="sign"` is a library-verified primitive for exactly
-      the diverging-stack case that D1/D2/D3 show this project gets wrong by hand;
-      and visx v4 still needs package-manager configuration to satisfy React 19's
-      peer range, which is an override to justify against a gated lockfile.
-    - This story is the reason the four view stories can each stay small.
-  </notes>
-</story>
-
-<story id="RW-E16" status="open" complexity="L" lane="E" model_lane="Fable">
+<story id="RW-E15" status="open" complexity="L" lane="E" model_lane="Fable">
   <title>Power timeline — 24h, dual axis (Recharts)</title>
-  <dependencies>RW-E15</dependencies>
+  <dependencies>RW-E11, RW-E14</dependencies>
   <acceptance_criteria>
-    <ac id="AC1">Built on RW-E15's shared chart layer: palette module for colours, shared tooltip and axis defaults, central reduced-motion handling, mocked container in tests. This story adds no chart chrome of its own.</ac>
+    <ac id="AC1">`recharts` added to Hestia per RW-E01's ADR and imported only inside the code-split energy route chunk.</ac>
     <ac id="AC2">Solar / grid / battery areas render around a zero baseline; home load overlay; battery SoC curve on the secondary axis.</ac>
     <ac id="AC3">Signed series render on the correct side of zero for both grid directions and both battery directions — the DP-003 assertion applies to charts too.</ac>
     <ac id="AC4">Multi-series crosshair tooltip works and reports the correct series values at the hovered bucket.</ac>
@@ -683,21 +629,21 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E17" status="open" complexity="S" lane="E" model_lane="Fable">
-  <title>Monthly overview — paired daily bars</title>
+<story id="RW-E16" status="open" complexity="M" lane="E" model_lane="Fable">
+  <title>Monthly overview + first bundle measurement and budget pin</title>
   <dependencies>RW-E15</dependencies>
   <acceptance_criteria>
-    <ac id="AC1">Built on RW-E15's shared chart layer; adds no chart chrome of its own.</ac>
-    <ac id="AC2">Paired daily bars for the current month; net-export days green; today emphasised.</ac>
-    <ac id="AC3">Sign-stacked bars place net import and net export on the correct sides — asserted for a mixed-sign month. Uses Recharts' `stackOffset="sign"` rather than a hand-computed diverging stack; hand-computing this is the D1/D2 error class waiting to happen.</ac>
-    <ac id="AC4">Colours from RW-E15's palette module only; no literal.</ac>
-    <ac id="AC5">Empty month and single-day month render without throwing.</ac>
-    <ac id="AC6">This is one of the two candidates for hand-rolling if RW-E15 AC11's lever is pulled — if it was, this story ships hand-rolled SVG in the `SpendingBarChart.tsx` idiom instead, and says so.</ac>
+    <ac id="AC1">Paired daily bars for the current month; net-export days green; today emphasised.</ac>
+    <ac id="AC2">Sign-stacked bars place net import and net export on the correct sides — asserted for a mixed-sign month.</ac>
+    <ac id="AC3">Colours by token only.</ac>
+    <ac id="AC4">**Bundle measured for real**: gzipped size of the `/energy` route chunk reported, with the Recharts + d3 share broken out. The assessment's ~140 KB gz was an estimate; this is the measurement (R9).</ac>
+    <ac id="AC5">The `/energy` route-chunk budget is pinned in Hestia's tooling from that measurement, and the gate fails when exceeded (HC-005).</ac>
+    <ac id="AC6">The rest of the PWA's entry chunk is confirmed unchanged in size — proof the code-split holds.</ac>
+    <ac id="AC7">If the measurement is disproportionate, the remedy applied is Recharts-side per the ADR-007 conditions (deeper splitting, narrower imports, one view hand-rolled); the charting decision is not reopened.</ac>
   </acceptance_criteria>
-  <notes>Complexity dropped from M to S: the bundle measurement and budget pin moved to RW-E15, where they belong (first Recharts import, earliest signal).</notes>
 </story>
 
-<story id="RW-E18" status="open" complexity="L" lane="E" model_lane="Fable">
+<story id="RW-E17" status="open" complexity="L" lane="E" model_lane="Fable">
   <title>Capacity peak screen — the Belgian tariff view</title>
   <dependencies>RW-E14, RW-E15</dependencies>
   <description>
@@ -709,15 +655,14 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <ac id="AC1">Current monthly peak with timestamp, from P1 `/v1/capacity/month/{YYYY-MM}`.</ac>
     <ac id="AC2">Threshold gauge against the 2.5 kW Belgian residential reference, marker at 62.5% of a 4.0 kW scale, escalating `--success` → `--warning` → `--danger` at 75% and 100% of reference. All three bands asserted.</ac>
     <ac id="AC3">Live headroom from a client-side 15-minute rolling average of `import_power_w`, **labelled indicative** — it approximates the meter's quarter-hour alignment and must not claim to be the meter's own figure (DP-002).</ac>
-    <ac id="AC4">`peaks[]` chart across the month with the bill-setting bar in coral, built on RW-E15's shared chart layer. This is the second candidate for hand-rolling if RW-E15 AC11's lever is pulled (~60 lines of plain bars).</ac>
-    <ac id="AC4b">The threshold gauge is **not** a chart-library artifact — it is hand-rolled SVG or CSS, since no chart library helps with a single-value gauge and pulling one in for it would be waste.</ac>
+    <ac id="AC4">`peaks[]` chart across the month with the bill-setting bar in coral.</ac>
     <ac id="AC5">Plain-language tariff explainer — no jargon, no fabricated euro amount.</ac>
     <ac id="AC6">Month rollover handled: the screen is correct on day 1 of a month with a nearly empty `peaks[]`, and mid-month.</ac>
     <ac id="AC7">Only documented capacity fields are read (HC-006); a missing or partial capacity payload degrades per HC-003.</ac>
   </acceptance_criteria>
 </story>
 
-<story id="RW-E19" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E18" status="open" complexity="M" lane="E" model_lane="Fable">
   <title>Grid detail — Live tab only</title>
   <dependencies>RW-E14, RW-E15</dependencies>
   <acceptance_criteria>
@@ -730,21 +675,21 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E20" status="blocked" complexity="M" lane="E" model_lane="Fable" blocked_by="RW-C01">
+<story id="RW-E19" status="blocked" complexity="M" lane="E" model_lane="Fable" blocked_by="RW-C01">
   <title>Grid detail — Day / Month / Year tabs</title>
-  <dependencies>RW-C01, RW-E19</dependencies>
+  <dependencies>RW-C01, RW-E18</dependencies>
   <acceptance_criteria>
     <ac id="AC1">Day, Month, and Year tabs render from the **captured** P1 series contract (RW-C01) — every field name traceable to Architecture.md's API Integration section.</ac>
     <ac id="AC2">Import-above / export-below mirroring per granularity.</ac>
     <ac id="AC3">Empty period, partial period, and all-export period render correctly and without NaN.</ac>
-    <ac id="AC4">RW-E19's "not yet available" state is removed, and RW-M04's legacy D3 gate is noted as removable if the legacy artifact is still live.</ac>
+    <ac id="AC4">RW-E18's "not yet available" state is removed, and RW-M04's legacy D3 gate is noted as removable if the legacy artifact is still live.</ac>
   </acceptance_criteria>
   <notes>Do not start this story before RW-C01 closes. Starting it early is exactly how D3 shipped.</notes>
 </story>
 
-<story id="RW-E21" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E20" status="open" complexity="M" lane="E" model_lane="Fable">
   <title>Test and knowledge transfer into Hestia</title>
-  <dependencies>RW-E18, RW-E19</dependencies>
+  <dependencies>RW-E17, RW-E18</dependencies>
   <description>
     R10: the sign conventions, the API contracts, and the R1 warning currently
     live only in a repo about to be archived. This story is the mitigation, and
@@ -760,9 +705,9 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E22" status="open" complexity="L" lane="E" model_lane="Opus">
+<story id="RW-E21" status="open" complexity="L" lane="E" model_lane="Opus">
   <title>Cutover, iframe removal, decommission, archive</title>
-  <dependencies>RW-E21, RW-M02, RW-M03, RW-M04, RW-M05</dependencies>
+  <dependencies>RW-E20, RW-M02, RW-M03, RW-M04, RW-M05</dependencies>
   <description>
     **This repo's Governor gates this story** even though it executes in
     Hestia — decommission is the one cross-repo gate (R11 mitigation).
@@ -773,7 +718,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <ac id="AC3">`/embed/energy/*` Caddy route removed; the `energy-dashboard` container stopped.</ac>
     <ac id="AC4">Evidence recorded for each of AC1–AC3 — command output and observed behaviour, never "should work". Any failure triggers rollback immediately, then escalation; no debugging in production.</ac>
     <ac id="AC5">R8 closes with the container: the deploy-provenance mismatch is resolved by decommission, and the final state is recorded rather than assumed.</ac>
-    <ac id="AC6">RW-E21 confirmed complete before archival — knowledge transfer is a precondition, not a follow-up.</ac>
+    <ac id="AC6">RW-E20 confirmed complete before archival — knowledge transfer is a precondition, not a follow-up.</ac>
     <ac id="AC7">This repo set read-only/archived, with story logs, ADRs, and the Sign Convention Reference intact and pushed to the public remote (the disaster-recovery copy of governance state).</ac>
   </acceptance_criteria>
 </story>
@@ -783,7 +728,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
 <!-- ============================================================ -->
 
 <blocked>
-  <item story="RW-E20" by="RW-C01" reason="api_contract_unknown">
+  <item story="RW-E19" by="RW-C01" reason="api_contract_unknown">
     P1 /v1/series bucket field names have never been captured. Guessing them
     shipped D3 in the legacy artifact and the Lovable mock re-invented them as
     `GridBucket`. No grid-history feature starts in any codebase until RW-C01
@@ -832,23 +777,6 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     Charting: **Recharts kept** (ADR-007 amendment 2, 2026-07-30) — bundled
     never CDN, code-split behind the /energy chunk, one chart library only,
     hex literals tokenised at port. Hestia records it locally at RW-E01.
-  </decision>
-  <decision id="DEC-08" owner="Architect" needed_by="done" status="resolved">
-    **Recharts over Visx**, considered and closed 2026-07-30. Visx was the
-    strongest alternative — CSS-class styling (no token bridge), far better
-    tree-shaking, real SVG assertable under jsdom. Rejected because: (a) the
-    correctness-critical logic lives outside the chart by design (RW-E04), which
-    is exactly where Visx's assertability would have paid off; (b) ~520 working
-    Recharts lines make this a ~1-day port versus a ~3-day rewrite landing on
-    the riskiest interaction (the multi-series crosshair tooltip); (c)
-    `stackOffset="sign"` is a library-verified primitive for the diverging-stack
-    case that D1/D2/D3 prove this project gets wrong by hand; (d) visx v4 still
-    needs package-manager configuration to satisfy React 19's peer range, an
-    override to justify against a gated lockfile. Recharts' costs are permanent
-    rather than one-time, so **RW-E15 exists to neutralise them once**: token
-    bridge with a drift test, mocked container, early measurement, pre-agreed
-    fallback lever. Canvas options (uPlot, Chart.js) were ruled out earlier on
-    a11y, jsdom-testability and CSS-token grounds, not weight.
   </decision>
 </decisions>
 

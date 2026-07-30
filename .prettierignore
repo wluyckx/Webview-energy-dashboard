@@ -2,3 +2,8 @@ dist/
 node_modules/
 coverage/
 *.md
+
+# Read-only design reference (ADR-010). Staged verbatim from the Lovable
+# project — not ours to restyle, and reformatting it would obscure the diff
+# against the source it was captured from. See RW-M01 / RW-C02.
+lovable/

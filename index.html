@@ -554,11 +554,7 @@
       .section-p1-card {
         padding: 0;
         overflow: hidden;
-        background: linear-gradient(
-          168deg,
-          rgba(192, 132, 252, 0.06) 0%,
-          var(--bg-surface) 40%
-        );
+        background: linear-gradient(168deg, rgba(192, 132, 252, 0.06) 0%, var(--bg-surface) 40%);
       }
 
       .p1-card__header {
@@ -629,8 +625,13 @@
       }
 
       @keyframes p1-pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
       }
 
       .p1-card__chart-wrap {
@@ -676,9 +677,16 @@
 
       /* Responsive: compact on small screens */
       @media (max-width: 399px) {
-        .p1-card__value { font-size: 22px; }
-        .p1-card__chart-wrap { height: 160px; }
-        .p1-card__tab { padding: 5px 12px; font-size: 12px; }
+        .p1-card__value {
+          font-size: 22px;
+        }
+        .p1-card__chart-wrap {
+          height: 160px;
+        }
+        .p1-card__tab {
+          padding: 5px 12px;
+          font-size: 12px;
+        }
       }
 
       /* ============================================================
