@@ -1,5 +1,10 @@
 services:
   dashboard:
+    # Build locally on the VPS from the uploaded Dockerfile + dist/ and tag the
+    # result with the image name below. Without this, `docker compose build` is
+    # a no-op and `up -d` runs whatever stale image carries the tag — the R8
+    # provenance failure that would have deployed the OLD artifact (2026-07-30).
+    build: .
     image: ghcr.io/wluyckx/energy-dashboard:latest
     container_name: energy-dashboard
     restart: unless-stopped
