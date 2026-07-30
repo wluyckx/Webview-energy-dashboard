@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>6</done>
-  <progress>20%</progress>
+  <done>7</done>
+  <progress>23%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-M06 done — D4 fixed: timeline grid series from the negated conservation identity with null gaps; five mutants killed incl. orientation flip via the executed cross-module bridge. All ADR-012 truthfulness defects (D1–D4) now fixed.</entry>
     <entry date="2026-07-30">RW-M04 done — D3 gated honestly: Day/Month/Year render a defined unavailable state naming RW-C01 as the unlock; computeDeltas and all four invented-field reads deleted; p1-card gains its first test file (0→92% stmts); export leg sign-pinned after mutation testing exposed coincidental coverage.</entry>
     <entry date="2026-07-30">RW-M03 done — D2 fixed: import/export from the conservation identity over documented fields; malformed buckets skipped whole; five mutants killed; self-sufficiency leaves 100% for the first time. Two Spec Author escalations upheld, incl. catching a false contract claim.</entry>
     <entry date="2026-07-30">RW-M02 done — D1 fixed: solarToGrid from P1 signed power_w with a non-finite guard; mock dead-field fiction zeroed. 17 new tests incl. the D1 pin; direction-flip and dead-field mutants killed; R7 closed. New defect D4 (charts.js:70, same field family) recorded in Architecture.md, disposition deferred to the RW-M03 derivation.</entry>
@@ -347,7 +348,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Reference: ADR-012 maintenance item 4, ADR-009 amendment, HC-002 rewrite, risks R3 and R6. SECURITY gate is the primary gate on this story.</notes>
 </story>
 
-<story id="RW-M06" status="open" complexity="S" tdd="mandatory" lane="M" model_lane="Fable" pipeline="full">
+<story id="RW-M06" status="done" complexity="S" tdd="mandatory" lane="M" model_lane="Fable" pipeline="full" log="docs/stories/RW-M06.md">
   <title>D4 — timeline grid series from the proven identity, not the dead field</title>
   <dependencies>RW-M03</dependencies>
   <description>
@@ -915,6 +916,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <idea>Daily battery charge/discharge kWh breakdown</idea>
   <idea>Year-over-year historical comparison</idea>
   <idea>CI for this repo — explicitly NOT worth building (ADR-011: archive-bound). Hestia's gates are the ones that outlive the transition</idea>
+  <idea>HC-003 family in the frozen chart file (recorded by the RW-M06 Builder and Verifier, accepted with follow-up): the solar/battery/home series still push NaN for malformed buckets, and the shared tooltip label callback calls value.toFixed(2) unguarded — a null grid point reaching it would be a NEW TypeError class, safe only by unverified CDN Chart.js skip behaviour. One coherent candidate story; promotion needs its own ADR-012 consideration, weighed against decommission proximity</idea>
   <idea>Normalise the validated base URL in `src/config.js`: `validateUrl` parses and resolves the candidate, but the config stores the raw unresolved string that `api-client.js` then concatenates. Inert today (every accepted value resolves same-origin, and no padding trick smuggled a foreign host through 24 attack classes), but the validated string and the fetched string are not provably identical — store `parsed.href`, or reject non-identity relative forms. Found by the RW-M05 Verifier and deliberately left out of that story's scope</idea>
   <idea>`coverage/` is absent from .gitignore (it appears only in .prettierignore), so `npm run test:coverage` followed by `git add -A` would commit coverage output to a PUBLIC remote. One line to fix; found by the RW-M05 Builder and deliberately left out of that story's scope</idea>
 </parking_lot>
