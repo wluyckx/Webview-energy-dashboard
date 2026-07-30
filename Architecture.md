@@ -293,7 +293,7 @@ Reference or HC-006 forbids:
 | D1 | `computeFlows` derives solar→grid from Sungrow `export_power_w`, which is **always 0 on this firmware** | `src/power-flow.js:546` | The solar→grid flow line never renders; the hero diagram silently hides all export activity |
 | D2 | Energy balance derives both export and import from `bucket.avg_export_power_w` — the same dead field | `src/energy-balance.js:37–41` | Export and import totals read 0.0 kWh; **self-consumption and self-sufficiency are pinned at 100%** — confidently wrong numbers on a money-relevant card |
 | D3 | P1 card reads invented series fields `energy_import_kwh` / `avg_power_w` from P1 buckets (the R1 contract was guessed) | `src/p1-card.js:350–365` | Day/Month/Year tabs render NaN bars |
-| D4 | Timeline chart's grid series reads `bucket.avg_export_power_w` — the series average of the always-0 field | `src/charts.js:70` | The timeline's grid line is flat 0 in production; grid activity silently hidden (D1's failure mode). **Recorded 2026-07-30 while drafting RW-M02** — missed by the original defect table. Disposition deliberately deferred until RW-M03 settles the P1-consistent bucket derivation, then decided as an ADR-012 amendment (fix in place with the same formula, or accept until decommission). The Hestia timeline is unaffected: its grid series is already governed by R13/F1 |
+| D4 | Timeline chart's grid series reads `bucket.avg_export_power_w` — the series average of the always-0 field | `src/charts.js:70` | The timeline's grid line is flat 0 in production; grid activity silently hidden (D1's failure mode). **Recorded 2026-07-30 while drafting RW-M02; disposition decided 2026-07-30 after RW-M03 proved the derivation** — ADR-012 amended to add maintenance item 5: fix in place (RW-M06) by plotting the negated conservation identity, `(avg_pv_power_w − avg_load_power_w − avg_battery_power_w)/1000`, preserving the chart's export-positive orientation. The identity is test-precedented (RW-M03: five mutants killed, cross-module direction check executed) and the pinning tests transfer. The Hestia timeline is unaffected: its grid series is already governed by R13/F1 |
 
 **Decision: D1 and D2 are fixed in place now; D3 is gated honestly, not
 fixed.** Rationale (full text in ADR-012):
@@ -321,6 +321,14 @@ fixed.** Rationale (full text in ADR-012):
    self-sufficiency < 100% on a fixture with real export.
 3. **D3 gate**: Day/Month/Year tabs render a defined unavailable state (HC-003
    styling), never NaN. Removed only when R1 closes.
+4a. **D4 fix (added by ADR-012 amendment, 2026-07-30)**: the timeline chart's
+   grid series derives from the negated conservation identity instead of the
+   dead `avg_export_power_w` (RW-M06). Amendment rationale: D4 is D1's failure
+   mode (silently hidden grid activity) in a surface the original defect table
+   missed; the fix reuses a derivation that is now proven, test-pinned, and
+   cross-module-verified, so the marginal risk of touching the frozen file is
+   below the truthfulness cost of leaving the grid line flat at 0 for the
+   remaining transition period.
 4. **Hardening rider** (approved, may ride along): delete the dead
    `postMessage` bridge listener and URL-token fallback from `config.js`
    (closing R6 in the live artifact by removal), and replace the

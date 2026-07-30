@@ -18,7 +18,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <supersedes_as_active>docs/BACKLOG.md (Phases 1–5, complete)</supersedes_as_active>
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
-  <total_stories>29</total_stories>
+  <total_stories>30</total_stories>
   <done>5</done>
   <progress>17%</progress>
   <changelog>
@@ -134,48 +134,49 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <entry priority="3"  story="RW-M03" title="D2 — energy balance off the dead export field" complexity="M" deps="RW-M01" lane="M" />
     <entry priority="4"  story="RW-M04" title="D3 — honest unavailable state on P1 series tabs" complexity="S" deps="RW-M01" lane="M" />
     <entry priority="5"  story="RW-M05" title="Hardening rider — delete bridge, require same-origin" complexity="M" deps="RW-M01" lane="M" />
+    <entry priority="6"  story="RW-M06" title="D4 — timeline grid series from the proven identity" complexity="S" deps="RW-M03" lane="M" />
   </tier>
 
   <tier name="Unblock (lane C, run in parallel — cheap and independent)" description="R1 is the single blocking unknown across both codebases.">
-    <entry priority="6"  story="RW-C01" title="Capture the P1 /v1/series bucket contract" complexity="S" deps="None" lane="C" />
-    <entry priority="7"  story="RW-C02" title="Stage the portable Lovable files locally (R12)" complexity="S" deps="None" lane="C" />
+    <entry priority="7"  story="RW-C01" title="Capture the P1 /v1/series bucket contract" complexity="S" deps="None" lane="C" />
+    <entry priority="8"  story="RW-C02" title="Stage the portable Lovable files locally (R12)" complexity="S" deps="None" lane="C" />
   </tier>
 
   <tier name="Foundation in Hestia (lane E)" description="Nothing renders until the design layer and primitives land.">
-    <entry priority="8"  story="RW-E01" title="Hestia ADRs — native route + Recharts record" complexity="S" deps="None" lane="E" />
-    <entry priority="9"  story="RW-E02" title="Port the design layer, scoped as a dark island" complexity="M" deps="RW-E01" lane="E" />
-    <entry priority="10" story="RW-E03" title="Port primitives, AnimatedNumber, Skeletons" complexity="M" deps="RW-E02" lane="E" />
-    <entry priority="11" story="RW-E04" title="Port the energy domain lib (React-free)" complexity="M" deps="RW-E01" lane="E" />
-    <entry priority="12" story="RW-E05" title="Port the mock layer and the data-hook shape" complexity="M" deps="RW-E04" lane="E" />
+    <entry priority="9"  story="RW-E01" title="Hestia ADRs — native route + Recharts record" complexity="S" deps="None" lane="E" />
+    <entry priority="10" story="RW-E02" title="Port the design layer, scoped as a dark island" complexity="M" deps="RW-E01" lane="E" />
+    <entry priority="11" story="RW-E03" title="Port primitives, AnimatedNumber, Skeletons" complexity="M" deps="RW-E02" lane="E" />
+    <entry priority="12" story="RW-E04" title="Port the energy domain lib (React-free)" complexity="M" deps="RW-E01" lane="E" />
+    <entry priority="13" story="RW-E05" title="Port the mock layer and the data-hook shape" complexity="M" deps="RW-E04" lane="E" />
   </tier>
 
   <tier name="Screens on mock (lane E)" description="Every screen renders end-to-end from mock-energy before any live byte flows.">
-    <entry priority="13" story="RW-E06" title="Power flow hero (ADR-008)" complexity="L" deps="RW-E03, RW-E04" lane="E" />
-    <entry priority="14" story="RW-E07" title="Status bar, offline banner, the three states" complexity="M" deps="RW-E03, RW-E05" lane="E" />
-    <entry priority="15" story="RW-E08" title="KPI strip" complexity="M" deps="RW-E03, RW-E05" lane="E" />
-    <entry priority="16" story="RW-E09" title="Energy balance card" complexity="M" deps="RW-E03, RW-E04" lane="E" />
-    <entry priority="17" story="RW-E10" title="Cost stub" complexity="S" deps="RW-E03" lane="E" />
-    <entry priority="18" story="RW-E11" title="Route wiring, code-split, i18n extraction" complexity="M" deps="RW-E06, RW-E07, RW-E08, RW-E09, RW-E10" lane="E" />
+    <entry priority="14" story="RW-E06" title="Power flow hero (ADR-008)" complexity="L" deps="RW-E03, RW-E04" lane="E" />
+    <entry priority="15" story="RW-E07" title="Status bar, offline banner, the three states" complexity="M" deps="RW-E03, RW-E05" lane="E" />
+    <entry priority="16" story="RW-E08" title="KPI strip" complexity="M" deps="RW-E03, RW-E05" lane="E" />
+    <entry priority="17" story="RW-E09" title="Energy balance card" complexity="M" deps="RW-E03, RW-E04" lane="E" />
+    <entry priority="18" story="RW-E10" title="Cost stub" complexity="S" deps="RW-E03" lane="E" />
+    <entry priority="19" story="RW-E11" title="Route wiring, code-split, i18n extraction" complexity="M" deps="RW-E06, RW-E07, RW-E08, RW-E09, RW-E10" lane="E" />
   </tier>
 
   <tier name="Live data (lane E)" description="Built once, here — the Lovable app never had a data layer.">
-    <entry priority="19" story="RW-E12" title="Same-origin fetch client with schema validation" complexity="L" deps="RW-E05" lane="E" />
-    <entry priority="20" story="RW-E13" title="Cadence, visibility gating, per-source backoff" complexity="L" deps="RW-E12" lane="E" />
-    <entry priority="21" story="RW-E14" title="Cache-on-failure and staleness thresholds" complexity="M" deps="RW-E13" lane="E" />
+    <entry priority="20" story="RW-E12" title="Same-origin fetch client with schema validation" complexity="L" deps="RW-E05" lane="E" />
+    <entry priority="21" story="RW-E13" title="Cadence, visibility gating, per-source backoff" complexity="L" deps="RW-E12" lane="E" />
+    <entry priority="22" story="RW-E14" title="Cache-on-failure and staleness thresholds" complexity="M" deps="RW-E13" lane="E" />
   </tier>
 
   <tier name="Charts and detail screens (lane E, Recharts)" description="ADR-007 Option A — foundation once, then port the four welded views.">
-    <entry priority="22" story="RW-E15" title="Chart foundation — token bridge, test harness, measurement, lever" complexity="M" deps="RW-E11, RW-E14" lane="E" />
-    <entry priority="23" story="RW-E16" title="Power timeline (24h, dual axis)" complexity="L" deps="RW-E15" lane="E" />
-    <entry priority="24" story="RW-E17" title="Monthly overview" complexity="S" deps="RW-E15" lane="E" />
-    <entry priority="25" story="RW-E18" title="Capacity peak screen" complexity="L" deps="RW-E14, RW-E15" lane="E" />
-    <entry priority="26" story="RW-E19" title="Grid detail — Live tab only" complexity="M" deps="RW-E14, RW-E15" lane="E" />
-    <entry priority="27" story="RW-E20" title="Grid detail — Day/Month/Year (BLOCKED by RW-C01)" complexity="M" deps="RW-C01, RW-E19" lane="E" />
+    <entry priority="23" story="RW-E15" title="Chart foundation — token bridge, test harness, measurement, lever" complexity="M" deps="RW-E11, RW-E14" lane="E" />
+    <entry priority="24" story="RW-E16" title="Power timeline (24h, dual axis)" complexity="L" deps="RW-E15" lane="E" />
+    <entry priority="25" story="RW-E17" title="Monthly overview" complexity="S" deps="RW-E15" lane="E" />
+    <entry priority="26" story="RW-E18" title="Capacity peak screen" complexity="L" deps="RW-E14, RW-E15" lane="E" />
+    <entry priority="27" story="RW-E19" title="Grid detail — Live tab only" complexity="M" deps="RW-E14, RW-E15" lane="E" />
+    <entry priority="28" story="RW-E20" title="Grid detail — Day/Month/Year (BLOCKED by RW-C01)" complexity="M" deps="RW-C01, RW-E19" lane="E" />
   </tier>
 
   <tier name="Close out" description="Knowledge must outlive this repo (R10) before it is archived.">
-    <entry priority="28" story="RW-E21" title="Test and knowledge transfer into Hestia" complexity="M" deps="RW-E18, RW-E19" lane="E" />
-    <entry priority="29" story="RW-E22" title="Cutover, iframe removal, decommission, archive" complexity="L" deps="RW-E21, RW-M02, RW-M03, RW-M04, RW-M05" lane="E" />
+    <entry priority="29" story="RW-E21" title="Test and knowledge transfer into Hestia" complexity="M" deps="RW-E18, RW-E19" lane="E" />
+    <entry priority="30" story="RW-E22" title="Cutover, iframe removal, decommission, archive" complexity="L" deps="RW-E21, RW-M02, RW-M03, RW-M04, RW-M05" lane="E" />
   </tier>
 </priority_order>
 
@@ -343,6 +344,32 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </scope_note>
   <out_of_scope>The Caddy configuration, docker-compose, the proxy itself, anything in the deployment path. Any change to how Caddy injects tokens server-side.</out_of_scope>
   <notes>Reference: ADR-012 maintenance item 4, ADR-009 amendment, HC-002 rewrite, risks R3 and R6. SECURITY gate is the primary gate on this story.</notes>
+</story>
+
+<story id="RW-M06" status="open" complexity="S" tdd="mandatory" lane="M" model_lane="Fable" pipeline="full">
+  <title>D4 — timeline grid series from the proven identity, not the dead field</title>
+  <dependencies>RW-M03</dependencies>
+  <description>
+    src/charts.js:70 pushes bucket.avg_export_power_w / 1000 as the timeline's
+    grid series — the series average of the always-0 field — so the grid line
+    is flat 0 in production: D1's failure mode in a surface the original
+    ADR-012 defect table missed. Authorised by the ADR-012 amendment of
+    2026-07-30 (maintenance item 4a), which reuses RW-M03's proven derivation.
+  </description>
+  <acceptance_criteria>
+    <ac id="AC1">The grid series derives from the negated conservation identity, (avg_pv_power_w − avg_load_power_w − avg_battery_power_w)/1000 — export positive, import negative, preserving the chart's existing orientation. EVIDENCE (verified at drafting): charts.js:70 currently plots avg_export_power_w/1000, whose mock values are positive on export buckets.</ac>
+    <ac id="AC2">Sign pin: a bucket with pv 3000, load 800, battery 0 plots +2.2 (export up); pv 0, load 1000, battery 0 plots −1.0 (import down). Direction matches computeBalance's classification for the same buckets — the RW-M03 cross-module check extended to the chart.</ac>
+    <ac id="AC3">Dead-field independence: avg_export_power_w ∈ {absent, 0, ±9999} produces an identical series (deep-equal), and the field has zero code reads in src/charts.js afterwards.</ac>
+    <ac id="AC4">Malformed buckets follow the RW-M03 whole-bucket precedent: any non-finite pv/load/battery ⇒ that bucket's grid point is null (Chart.js renders a gap), never NaN and never a fabricated value. Numeric strings not coerced (AC10g/AC6b precedent).</ac>
+    <ac id="AC5">The other timeline series (pv, load, battery, SoC) are byte-identical in derivation — this story touches the grid series only.</ac>
+    <ac id="AC6">Mock-mode consequence documented: the mock's grid line changes from the invented avg_export_power_w values to the identity values (consistent with RW-M03's balance card), pinned by one fixture test.</ac>
+  </acceptance_criteria>
+  <allowed_scope>
+    <file>src/charts.js (the grid-series derivation only)</file>
+    <file>tests/charts.test.js (Spec Author only)</file>
+  </allowed_scope>
+  <out_of_scope>Chart.js configuration, axes, colours, tooltips; every other series; src/energy-balance.js; src/mock-data.js.</out_of_scope>
+  <notes>Full pipeline despite complexity S: the SIGN CONVENTION gate applies (charts.js is a named module in CLAUDE.md §2.3), which excludes the light lane by rule.</notes>
 </story>
 
 <!-- ============================================================ -->
