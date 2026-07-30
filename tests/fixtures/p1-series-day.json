@@ -1,0 +1,90 @@
+{
+  "device_id": "p1-test",
+  "frame": "day",
+  "series": [
+    {
+      "bucket": "2026-07-30 00:00:00+00:00",
+      "avg_power_w": 415,
+      "max_power_w": 532,
+      "energy_import_kwh": 0.415,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 01:00:00+00:00",
+      "avg_power_w": 410,
+      "max_power_w": 504,
+      "energy_import_kwh": 0.411,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 02:00:00+00:00",
+      "avg_power_w": 404,
+      "max_power_w": 512,
+      "energy_import_kwh": 0.405,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 03:00:00+00:00",
+      "avg_power_w": 400,
+      "max_power_w": 725,
+      "energy_import_kwh": 0.4,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 04:00:00+00:00",
+      "avg_power_w": 367,
+      "max_power_w": 1232,
+      "energy_import_kwh": 0.368,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 05:00:00+00:00",
+      "avg_power_w": 997,
+      "max_power_w": 5477,
+      "energy_import_kwh": 0.996,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 06:00:00+00:00",
+      "avg_power_w": 629,
+      "max_power_w": 3469,
+      "energy_import_kwh": 0.629,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 07:00:00+00:00",
+      "avg_power_w": 401,
+      "max_power_w": 3360,
+      "energy_import_kwh": 0.396,
+      "energy_export_kwh": 0.0
+    },
+    {
+      "bucket": "2026-07-30 08:00:00+00:00",
+      "avg_power_w": 25,
+      "max_power_w": 640,
+      "energy_import_kwh": 0.026,
+      "energy_export_kwh": 0.002
+    },
+    {
+      "bucket": "2026-07-30 09:00:00+00:00",
+      "avg_power_w": 18,
+      "max_power_w": 618,
+      "energy_import_kwh": 0.026,
+      "energy_export_kwh": 0.008
+    },
+    {
+      "bucket": "2026-07-30 10:00:00+00:00",
+      "avg_power_w": 14,
+      "max_power_w": 1014,
+      "energy_import_kwh": 0.02,
+      "energy_export_kwh": 0.006
+    },
+    {
+      "bucket": "2026-07-30 11:00:00+00:00",
+      "avg_power_w": 713,
+      "max_power_w": 3800,
+      "energy_import_kwh": 0.719,
+      "energy_export_kwh": 0.008
+    }
+  ]
+}

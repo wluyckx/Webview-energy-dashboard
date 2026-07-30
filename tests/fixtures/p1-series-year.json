@@ -1,0 +1,41 @@
+{
+  "device_id": "p1-test",
+  "frame": "year",
+  "series": [
+    {
+      "bucket": "2026-02-01 00:00:00+00:00",
+      "avg_power_w": 899,
+      "max_power_w": 11756,
+      "energy_import_kwh": 298.308,
+      "energy_export_kwh": 9.216
+    },
+    {
+      "bucket": "2026-03-01 00:00:00+00:00",
+      "avg_power_w": 610,
+      "max_power_w": 12073,
+      "energy_import_kwh": 560.368,
+      "energy_export_kwh": 70.371
+    },
+    {
+      "bucket": "2026-04-01 00:00:00+00:00",
+      "avg_power_w": 246,
+      "max_power_w": 10961,
+      "energy_import_kwh": 347.764,
+      "energy_export_kwh": 170.494
+    },
+    {
+      "bucket": "2026-05-01 00:00:00+00:00",
+      "avg_power_w": 475,
+      "max_power_w": 10442,
+      "energy_import_kwh": 433.528,
+      "energy_export_kwh": 80.005
+    },
+    {
+      "bucket": "2026-06-01 00:00:00+00:00",
+      "avg_power_w": 422,
+      "max_power_w": 11551,
+      "energy_import_kwh": 412.635,
+      "energy_export_kwh": 85.611
+    }
+  ]
+}

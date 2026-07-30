@@ -94,10 +94,16 @@ export interface GridSample {
 /**
  * Grid detail bucket for day / month / year tabs.
  *
- * ⚠️ UNVERIFIED CONTRACT (Architecture.md R1 / HC-006). The real P1
- * `/v1/series` bucket field names have never been captured from the live API.
- * This shape is the mock's invention and must NOT be treated as the contract —
- * capture the real response before building anything on it.
+ * ⚠️ SUPERSEDED 2026-07-30 (RW-C01): the real contract has now been CAPTURED
+ * from the live API and recorded in Architecture.md (API Integration). This
+ * invented shape got the structure right (two unsigned per-bucket magnitudes)
+ * and every detail wrong: real fields are `energy_import_kwh` /
+ * `energy_export_kwh` (not `import_kwh`/`export_kwh`), plus `avg_power_w`
+ * (signed net average) and `max_power_w`; the `month` frame is WEEKLY, not
+ * daily; gaps are omitted buckets. Build RW-E20 from the captured contract,
+ * never from this type.
+ * (Original warning, kept for the record: this shape was the mock's invention,
+ * never captured — R1 / HC-006.)
  */
 export interface GridBucket {
   bucket: string;

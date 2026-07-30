@@ -292,7 +292,7 @@ Reference or HC-006 forbids:
 |---|---|---|---|
 | D1 | `computeFlows` derives solar→grid from Sungrow `export_power_w`, which is **always 0 on this firmware** | `src/power-flow.js:546` | The solar→grid flow line never renders; the hero diagram silently hides all export activity |
 | D2 | Energy balance derives both export and import from `bucket.avg_export_power_w` — the same dead field | `src/energy-balance.js:37–41` | Export and import totals read 0.0 kWh; **self-consumption and self-sufficiency are pinned at 100%** — confidently wrong numbers on a money-relevant card |
-| D3 | P1 card reads invented series fields `energy_import_kwh` / `avg_power_w` from P1 buckets (the R1 contract was guessed) | `src/p1-card.js:350–365` | Day/Month/Year tabs render NaN bars |
+| D3 | P1 card read `energy_import_kwh` / `avg_power_w` from P1 series buckets against an uncaptured contract (R1). **Corrected 2026-07-30 (RW-C01)**: the fields exist — the defect was *semantic* (per-bucket energies treated as cumulative meter readings, plus a spurious /1000), not absent fields as previously recorded. The gate (RW-M04) remains correct either way: the rendering was wrong and the contract was guessed | `src/p1-card.js` (path deleted by RW-M04) | Tabs rendered garbage; gated honestly since RW-M04 |
 | D4 | Timeline chart's grid series reads `bucket.avg_export_power_w` — the series average of the always-0 field | `src/charts.js:70` | The timeline's grid line is flat 0 in production; grid activity silently hidden (D1's failure mode). **Recorded 2026-07-30 while drafting RW-M02; disposition decided 2026-07-30 after RW-M03 proved the derivation** — ADR-012 amended to add maintenance item 5: fix in place (RW-M06) by plotting the negated conservation identity, `(avg_pv_power_w − avg_load_power_w − avg_battery_power_w)/1000`, preserving the chart's export-positive orientation. The identity is test-precedented (RW-M03: five mutants killed, cross-module direction check executed) and the pinning tests transfer. The Hestia timeline is unaffected: its grid series is already governed by R13/F1 |
 
 **Decision: D1 and D2 are fixed in place now; D3 is gated honestly, not
@@ -416,28 +416,64 @@ production both are reached exclusively through Hestia's Caddy proxy
 | Endpoint | Returns | Used by |
 |----------|---------|---------|
 | `GET /v1/realtime?device_id=` | `power_w` (signed), `import_power_w`, `energy_import_kwh`, `energy_export_kwh`, `ts` | flow diagram, Grid KPI, grid live tab, capacity headroom |
-| `GET /v1/series?device_id=&frame=` | frame `day` = hourly, `month` = daily, `year` = monthly buckets — **bucket field names never captured, see R1** | Grid detail Day/Month/Year (**blocked**) |
-| `GET /v1/capacity/month/{YYYY-MM}?device_id=` | `monthly_peak_w`, `monthly_peak_ts`, `peaks[]: {ts, avg_power_w}` | Month-peak KPI, capacity screen |
-| `GET /health` | `{status: "ok"}`, no auth | status bar |
+| `GET /v1/series?device_id=&frame=` | **CAPTURED 2026-07-30 (RW-C01)** — envelope `{device_id, frame, series[]}`; bucket = `{bucket, avg_power_w, max_power_w, energy_import_kwh, energy_export_kwh}` (full table below) | Grid detail Day/Month/Year (unblocked for Hestia RW-E20) |
+| `GET /v1/capacity/month/{YYYY-MM}?device_id=` | `monthly_peak_w`, `monthly_peak_ts`, `peaks[]: {bucket, avg_power_w}` — **corrected 2026-07-30**: the entry key is `bucket` (ISO-T), **not** the previously documented `ts`, and `peaks[]` is EVERY 15-minute bucket of the month (1,470 entries captured), not per-day peaks | Month-peak KPI, capacity screen |
+| `GET /health` | `{status: "ok", db: "ok", redis: "ok"}`, no auth | status bar |
+
+**P1 `/v1/series` bucket contract — captured from the live API 2026-07-30
+(RW-C01, closing R1).** Raw captures stay in gitignored scratch; fixtures at
+`tests/fixtures/p1-series-{day,month,year}.json` preserve shape, formats, and
+the gap behaviour with scrubbed values.
+
+| Field | Type | Unit / semantics | Evidence |
+|---|---|---|---|
+| `bucket` | string | Bucket **start**, format `YYYY-MM-DD HH:MM:SS+00:00` — **space separator with numeric offset**, unlike P1 realtime/capacity (ISO-T) and Sungrow (`T…Z`). Three timestamp formats across the two APIs; parse defensively | all frames |
+| `avg_power_w` | int | **Signed net average of `power_w` over the bucket** (P1 convention: positive = import). Proven, not assumed: `(energy_import_kwh − energy_export_kwh)·1000/h` equals it exactly in every captured hourly bucket. Captured values are all ≥0 only because no captured period was net-export; by construction it goes negative on export-dominant buckets | RW-C01 cross-check |
+| `max_power_w` | int | Maximum instantaneous power in the bucket. Captured up to **11,148 W** (real spikes exist). Observed on import-dominant data only; export-bucket behaviour unconfirmed — not authoritative for export peaks | day max 5,477 |
+| `energy_import_kwh` | float | **Per-bucket** imported energy, ≥0. ⚠ Same name as P1 *realtime*'s `energy_import_kwh`, which is the **cumulative lifetime meter** (~16,306 kWh at capture) — identical names, different semantics. This exact trap is what D3's code fell into | all frames |
+| `energy_export_kwh` | float | Per-bucket exported energy, ≥0. Direction is **two unsigned magnitudes per bucket**, not a signed field | all frames |
+
+**Frame semantics (captured, correcting prior assumptions):** `day` → hourly;
+`month` → **WEEKLY buckets, Monday-start** (previously assumed daily — it is
+not); `year` → monthly (1st). **Incomplete trailing buckets are omitted**, with
+up to ~2 h lag observed on the day frame. **Gaps are omitted buckets, not
+nulls** — the captured month frame is missing the 2026-07-06 week entirely;
+renderers must not interpolate across missing buckets, and consumers key by
+`bucket`, never array index. Cross-source inconsistency: Sungrow's `month`
+frame is **daily** buckets; P1's is weekly — the two cannot be joined by frame
+name.
+
+**Measured P1-vs-inverter divergence (quantifies R13):** night-hour buckets
+agree with the Sungrow conservation identity within 1–2 W; solar-hour buckets
+diverge 60–90 W, with opposite signs near the zero crossing (08:00: P1 +24 W vs
+identity −69 W). P1 stays authoritative; identity-derived series are estimates
+that will visibly disagree near zero.
 
 ### Sungrow API (solar + battery)
 
 | Endpoint | Returns | Used by |
 |----------|---------|---------|
-| `GET /v1/realtime?device_id=` | `pv_power_w`, `pv_daily_kwh`, `battery_power_w`, `battery_soc_pct`, `battery_temp_c`, `load_power_w`, `export_power_w` (**dead — always 0, never read**) | flow diagram, Battery/Solar KPIs |
-| `GET /v1/series?device_id=&frame=` | buckets `{bucket, avg_pv_power_w, max_pv_power_w, avg_battery_power_w, avg_battery_soc_pct, avg_load_power_w, …}` | energy balance, timeline (incl. SoC curve), monthly overview |
+| `GET /v1/realtime?device_id=` | `pv_power_w`, `pv_daily_kwh`, `battery_power_w`, `battery_soc_pct`, `battery_temp_c`, `load_power_w`, `export_power_w` (**dead — never read**), `sample_count` (int, re-verified 2026-07-30 — present but previously undocumented) | flow diagram, Battery/Solar KPIs |
+| `GET /v1/series?device_id=&frame=` | buckets `{bucket, avg_pv_power_w, max_pv_power_w, avg_battery_power_w, avg_battery_soc_pct, avg_load_power_w, avg_export_power_w, sample_count}` — re-verified 2026-07-30: two fields beyond the documented five. `avg_export_power_w` is **near-zero noise (0.07–1.0 W captured), not literally 0** — the "always 0" claim is approximately true; the never-read rule unchanged. `sample_count` (int) is a completeness signal (≈16,460 ≈ a full day at 5 s). Bucket format `T…Z`. Sungrow `month` = **daily** buckets with gaps (unlike P1 weekly) | energy balance, timeline (incl. SoC curve), monthly overview |
 | `GET /health` | `{status: "ok"}`, no auth | status bar |
 
-Series frames on both APIs: `day` = hourly buckets, `month` = daily, `year` =
-monthly.
+Series frames — **corrected 2026-07-30, NOT uniform across the two APIs**:
+`day` = hourly on both; `month` = **weekly (Monday-start) on P1, daily on
+Sungrow**; `year` = monthly. Both APIs omit incomplete trailing buckets and
+omit gap buckets entirely (no nulls).
 
 ### Contract discipline
 
 **Guessing an API contract is forbidden** (HC-006; CLAUDE.md escalation reason
 `api_contract_unknown`). This is not theoretical: the shipped `p1-card.js`
-reads `energy_import_kwh` / `avg_power_w` from P1 series buckets — fields that
-were never documented and do not exist — and every bar in that view renders
-NaN (defect D3). The Lovable mock repeated the pattern: its `GridBucket
+read `energy_import_kwh` / `avg_power_w` from P1 series buckets while the
+contract was uncaptured — and rendered garbage (defect D3). **The capture
+(2026-07-30) added a sharper moral**: those field names turned out to EXIST,
+but with different semantics than the code assumed — per-bucket energy, not
+the cumulative meter the identically-named realtime fields hold; the code
+computed deltas of values that are already deltas. Guessing a contract can
+fail even when the names are right, which is why the rule is capture-first,
+not name-checking. The Lovable mock repeated the pattern: its `GridBucket
 {bucket, import_kwh, export_kwh}` is an invention, flagged with an UNVERIFIED
 CONTRACT warning in `lovable/src/types/energy.ts`. The P1 series bucket
 contract must be **captured from the live API and recorded** (here and in
@@ -972,7 +1008,7 @@ types into Hestia.
 
 | Id | Risk | Status |
 |----|------|--------|
-| R1 | **P1 series bucket contract unknown — blocking.** No document defines P1 `/v1/series` bucket field names; guessing them shipped D3, and the Lovable mock re-invented them (`GridBucket`). Capture from the live API (E7), record here and in Hestia, **before** any P1-series feature in any codebase. While capturing, re-verify the Sungrow series bucket field names too (no history of invention there, but the exercise is cheap) | **Open, blocking** Grid Day/Month/Year |
+| ~~R1~~ | **P1 series bucket contract unknown** — was the only blocking unknown in either codebase | **CLOSED 2026-07-30 by RW-C01.** Captured from the live API via server-held tokens (never leaving the VPS): full bucket table in API Integration, fixtures derived and scrubbed, Sungrow re-verified (two undocumented fields found), capacity `peaks[]` doc drift corrected (`bucket`, not `ts`). Grid Day/Month/Year unblocked for Hestia (RW-E20); the legacy tabs stay gated by design (RW-C01 log) |
 | R3 | Legacy base-URL validation is prefix-only (`config.js`) | Fix scheduled: maintenance-lane item 4 (same-origin requirement). CSP `connect-src` is the current backstop. Closed structurally for the native route (no base-URL parameter exists) |
 | R5 | `style-src 'unsafe-inline'` required by React/Recharts inline styles — persists after extraction | Open, bounded (no injection vector identified; no `dangerouslySetInnerHTML` in the app layer). Post-port audit item in Hestia (`style-src-attr` tightening) |
 | R7 | Legacy `computeFlows` reads dead `export_power_w` (D1) | Fix scheduled: maintenance-lane item 1, with the pinning invariant required in both test suites |
@@ -981,7 +1017,7 @@ types into Hestia.
 | R10 | **Knowledge stranding**: sign conventions, contracts, the R1 warning — and, as of 2026-07-30, the measured governance lessons (evidence rule, spec-first routing, mutation testing, no-coercion precedent) — currently live only in this soon-to-be-archived repo | Mitigation is E5 (documentation transfer is an exit criterion, not an afterthought); the process lessons transfer under RW-E21 AC7 with their evidence attached |
 | R11 | **Cross-repo coordination**: E1–E6 execute under Hestia's governance; this repo's Governor cannot gate them directly | Mitigation: decommission (E6) is gated on this repo's Governor verifying the cutover evidence; the two ADR logs cross-reference each other |
 | ~~R12~~ | **The design reference was vendor-hosted, not captured.** ADR-010 recorded the design as "captured in ~2,300 reviewed lines" while local `lovable/` held only three files; everything else existed solely in the Lovable cloud project, with ten port stories depending on it | **CLOSED 2026-07-30 by RW-C02.** 19 files (~2,900 lines incl. banners) staged locally with `lovable/MANIFEST.md`: the full portable set, `styles.css`, and the four Recharts views. Nothing ADR-010 discards was staged; secrets sweep clean before commit |
-| R13 | **`PowerTimeline` in the design reference derives grid direction from Sungrow, not P1.** It computes `grid = (avg_load_power_w − avg_pv_power_w + avg_battery_power_w)` instead of reading the authoritative P1 `power_w`. The polarity coincidentally matches, so it looks right — but it is the **same class of error as D1**, it will not tie out with the P1-sourced KPI card, and a P1-sourced history series runs into R1. Discovered while staging (RW-C02), recorded as `lovable/MANIFEST.md` finding F1 | **Open.** RW-E16 must not port the derivation; the timeline's grid series is an escalation at port, not a copy. The reference file is left unmodified by the read-only rule |
+| R13 | **`PowerTimeline` in the design reference derives grid direction from Sungrow, not P1.** It computes `grid = (avg_load_power_w − avg_pv_power_w + avg_battery_power_w)` instead of reading the authoritative P1 `power_w`. The polarity coincidentally matches, so it looks right — but it is the **same class of error as D1**, it will not tie out with the P1-sourced KPI card, and a P1-sourced history series runs into R1. Discovered while staging (RW-C02), recorded as `lovable/MANIFEST.md` finding F1 | **Open.** RW-E16 must not port the derivation; the timeline's grid series is an escalation at port, not a copy. The reference file is left unmodified by the read-only rule. **Magnitude measured 2026-07-30 (RW-C01)**: 1–2 W agreement at night, 60–90 W divergence in solar hours with opposite signs near the zero crossing — visible on any chart plotting both sources |
 
 Retired risks from the morning revision: R2 (Lovable output unverified — the
 assessment verified it file-by-file), R4 (superseded by R9), R6 (bridge

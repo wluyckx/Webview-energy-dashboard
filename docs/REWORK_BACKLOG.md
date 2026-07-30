@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>7</done>
-  <progress>23%</progress>
+  <done>8</done>
+  <progress>27%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-C01 done — R1 CLOSED. P1 /v1/series captured via server-held tokens: direction = two unsigned per-bucket magnitudes; avg_power_w proven signed-net-average; month frame is WEEKLY; gaps are omitted buckets. D3 record corrected (fields exist, defect was semantic). Capacity peaks[] doc drift fixed (bucket not ts; 1470 quarter-hours). Real July peak 7359 W vs the staged 4 kW gauge scale. Sungrow drift recorded. Nothing is blocked on an unknown anymore.</entry>
     <entry date="2026-07-30">DEPLOYED — the fixed artifact is live in production, verified by hash chain (local build = image = served bytes). Pre-deploy inspection found R8 live (image from 2026-03-20; every deploy since had shipped nothing) and a months-lying healthcheck — both fixed in f751634. The Operator escalated the destructive container swap per contract instead of improvising; the recreate also restored the en_dashboard alias one Caddy route silently depended on.</entry>
     <entry date="2026-07-30">RW-M06 done — D4 fixed: timeline grid series from the negated conservation identity with null gaps; five mutants killed incl. orientation flip via the executed cross-module bridge. All ADR-012 truthfulness defects (D1–D4) now fixed.</entry>
     <entry date="2026-07-30">RW-M04 done — D3 gated honestly: Day/Month/Year render a defined unavailable state naming RW-C01 as the unlock; computeDeltas and all four invented-field reads deleted; p1-card gains its first test file (0→92% stmts); export leg sign-pinned after mutation testing exposed coincidental coverage.</entry>
@@ -379,7 +380,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
 <!-- LANE C — CAPTURE (this repo)                                  -->
 <!-- ============================================================ -->
 
-<story id="RW-C01" status="open" complexity="S" tdd="not-applicable" lane="C" model_lane="Fable">
+<story id="RW-C01" status="done" complexity="S" tdd="not-applicable" lane="C" model_lane="Fable" log="docs/stories/RW-C01.md">
   <title>Capture the P1 /v1/series bucket contract from the live API</title>
   <dependencies>None</dependencies>
   <description>
@@ -757,7 +758,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </description>
   <acceptance_criteria>
     <ac id="AC1">Current monthly peak with timestamp, from P1 `/v1/capacity/month/{YYYY-MM}`.</ac>
-    <ac id="AC2">Threshold gauge against the 2.5 kW Belgian residential reference, marker at 62.5% of a 4.0 kW scale, escalating `--success` → `--warning` → `--danger` at 75% and 100% of reference. All three bands asserted.</ac>
+    <ac id="AC2">Threshold gauge against the 2.5 kW Belgian residential reference with `--success` → `--warning` → `--danger` escalation at 75% and 100% of reference. **Scale amended 2026-07-30 (RW-C01 capture): the staged 4.0 kW clamped scale is refuted by reality — the real July peak is 7,359 W, which would render indistinguishable from 4 kW.** The story must pick a scale that shows the actual peak (dynamic max(4 kW, peak·1.1), or a broken-scale treatment) — Architect decision at contract time, informed by the captured capacity data (1,470 quarter-hour buckets/month, entry key `bucket` not `ts`). All bands asserted.</ac>
     <ac id="AC3">Live headroom from a client-side 15-minute rolling average of `import_power_w`, **labelled indicative** — it approximates the meter's quarter-hour alignment and must not claim to be the meter's own figure (DP-002).</ac>
     <ac id="AC3b">**The reference gets this wrong and must not be copied** (`lovable/MANIFEST.md` F3): it divides an *instantaneous* reading by a 15-minute-average peak and presents it unhedged as "You're at N% of this month's peak right now." Port the architecture's version — rolling average, labelled indicative — not the staged sentence.</ac>
     <ac id="AC3c">Guard the divide (`lovable/MANIFEST.md` F4): the reference guards `headroom` with `peakW > 0` but leaves the adjacent `toneFor(liveImportW / peakW)` unguarded, so on day one of a month the ratio is NaN and the gauge falls through to `--danger` — an alarming red beside a 0% reading. Assert the `peakW === 0` case renders a defined state in a calm tone.</ac>
@@ -836,14 +837,12 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
 <!-- ============================================================ -->
 
 <blocked>
-  <item story="RW-E20" by="RW-C01" reason="api_contract_unknown">
-    P1 /v1/series bucket field names have never been captured. Guessing them
-    shipped D3 in the legacy artifact and the Lovable mock re-invented them as
-    `GridBucket`. No grid-history feature starts in any codebase until RW-C01
-    closes.
-  </item>
-  <item story="RW-M04 (removal of the gate)" by="RW-C01" reason="api_contract_unknown">
-    The D3 unavailable state is removed only when the real contract exists.
+  <item story="none" note="register cleared 2026-07-30">
+    RW-C01 closed R1: the P1 /v1/series contract is captured. RW-E20 is
+    unblocked (build from the captured contract in Architecture.md — note the
+    WEEKLY month frame and omitted-bucket gaps). RW-M04's legacy gate stays IN
+    PLACE by Governor disposition (ADR-012 authorizes no tab-building story and
+    decommission approaches); Hestia builds the real tabs at RW-E20.
   </item>
 </blocked>
 
