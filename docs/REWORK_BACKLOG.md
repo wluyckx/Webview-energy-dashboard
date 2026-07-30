@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>22</done>
-  <progress>73%</progress>
+  <done>23</done>
+  <progress>77%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E15 done (Hestia STORY-102, PR #16) — chart foundation: recharts added, token bridge drift-tested, jsdom harness, and the REAL BUNDLE MEASUREMENT closing R9 (route chunk 97.9 KB gz, recharts+d3 ~89 KB, under estimate). The four chart views (RW-E16..E19/E20) build on this next.</entry>
     <entry date="2026-07-30">RW-E12..E14 done (Hestia STORY-099..101, PRs #13-#15) — the LIVE-DATA TIER: same-origin schema-validating client (HC-002 as code), per-source scheduler with visibility gating + backoff, cold-open mock fallback framed offline. Next: charts (RW-E15 foundation adds recharts + pins the real bundle budget).</entry>
     <entry date="2026-07-30">RW-E05 through RW-E11 done in one auto-mode run (Hestia STORY-092..098, PRs #6-#12) — the SCREENS-ON-MOCK MILESTONE: the native island renders end-to-end at /energy/native, code-split (7.4 KB gz measured), with the donor anatomy, i18n EN/NL/FR throughout, and every port-time correction applied (tokenised hexes, reduced-motion flash suppression, neutral balanced accent, the balance card consuming rather than recomputing). Next tier: live data (RW-E12..E14).</entry>
     <entry date="2026-07-30">RW-E04 done (Hestia STORY-091, PR #5) — the domain lib lands React-free with the corrected sign conventions and captured types; the D1 invariant now exists in both suites, closing the both-suites requirement early. 35 tests RED-first, green first pass.</entry>
@@ -670,7 +671,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E15" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E15" status="done" complexity="M" lane="E" model_lane="Fable" note="Hestia STORY-102 (PR #16): recharts 3.10 added; CHART_PALETTE token bridge with a drift test; ResponsiveContainer jsdom mock; ChartFrame shared chrome. MEASURED (closes R9): route chunk 97.9 KB gz with recharts vs 8.8 without = recharts+d3 ~89 KB gz, UNDER the ~140 estimate, no lever needed; entry chunk unchanged. Budget pinned <=130 KB gz in Hestia ADR-018.">
   <title>Chart foundation — token bridge, test harness, measurement, and the fallback lever</title>
   <dependencies>RW-E11, RW-E14</dependencies>
   <description>
