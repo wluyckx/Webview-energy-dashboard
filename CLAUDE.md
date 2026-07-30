@@ -1,593 +1,543 @@
-# CLAUDE.md — Agent Operating Manual
+# CLAUDE.md — Energy Dashboard Governance Operating Model
 
-This file defines **how work is allowed to happen** in the Energy Dashboard repository.
-It has higher authority than all other repository documents except system/user instructions.
+This repo is delivered by a **governed multi-agent process**. If you are a
+Claude session opening this repo: identify your role below and follow its
+contract. The Governor role is the default for an interactive session on this
+repo; worker roles are subagents spawned by the Governor.
 
----
+Normative documents, in order of authority:
+`Architecture.md` (incl. ADRs and Hard Constraints) > `docs/FE_design.md`
+(presentation) > `docs/REWORK_BACKLOG.md` > this file's conventions.
+**`docs/REWORK_BACKLOG.md` is the active task list** (the extraction stories
+RW-M/RW-C/RW-E, the blocked register, and the open decisions);
+`docs/BACKLOG.md` is the closed Phases 1–5 record and is not reopened.
+`SKILL.md` (security) binds every role and is never traded away for scope.
+`docs/LOVABLE_INTEGRATION_ASSESSMENT.md` is the evidence base behind
+ADR-010/011/012 — not normative itself, but the reason the current
+architecture says what it says.
 
-## 1. Authority & Precedence (Hard Rules)
-
-Instruction precedence, highest to lowest:
-
-1. System + explicit user instructions
-2. This file (`CLAUDE.md`) — **cannot be overridden**
-3. `Architecture.md`
-4. `docs/FE_design.md` (visual design specification)
-5. `docs/BACKLOG.md` and story files (`docs/stories/*.md`)
-6. Source code and tests
-
-If a request conflicts with a higher-priority source, the agent must refuse.
-
----
-
-## 2. Agent Responsibility Model (Hard Boundary)
-
-Two logical roles exist. **Both roles are played by the same Claude Code agent.**
-The user's request determines which role is active — there is no separate process or
-formal handoff. When the user asks to restructure the backlog, research a topic, or
-define stories, the agent operates as Governance. When the user asks to implement a
-story, the agent operates as Coding Agent. The distinction exists to enforce **what
-changes are allowed**, not to model separate systems.
-
-### 2.1 Governance Agent
-
-Activated by: strategic questions, research requests, backlog/architecture/story work,
-session management, or any task that shapes *what* gets built rather than *building* it.
-
-Responsible for:
-
-**Research & Strategy**
-- Investigating APIs, market context, technical feasibility, and user needs
-- Mapping use cases to capabilities and identifying value opportunities
-- Evaluating technical approaches before committing to stories
-
-**Documents & Decisions**
-- Creating and editing: `CLAUDE.md`, `Architecture.md`, `docs/BACKLOG.md`,
-  `docs/stories/*.md`
-- Defining scope, acceptance criteria, and test plans for stories
-- Proposing and approving Architecture Decision Records (ADRs)
-
-**Backlog & Progress**
-- Changing story status (pending / in_progress / done)
-- Maintaining the dependency graph and priority order
-- Restructuring the backlog when new information invalidates assumptions
-
-**Session Continuity**
-- Maintaining agent memory (`MEMORY.md` and topic files)
-- Updating MEMORY.md at end of session, running resume checklist at start
-
-**Coordination**
-- Dispatching Coding Agent work on specific stories
-- Resolving conflicts when parallel agents touch shared files
-
-### 2.2 Coding Agent
-
-Activated by: explicit request to implement a specific story.
-
-Responsible for:
-- Implementing code changes within a story's Allowed Scope
-- Modifying only files explicitly permitted by that story
-- Documenting code changes in a changelog header, including story ID and context
-- Following TDD workflow when the story mandates it
-- Reporting results back (what was done, what tests pass, what's unresolved)
-
-### 2.3 Hard Restrictions
-
-The Coding Agent must NOT:
-- Edit governance or backlog documents
-- Change scope, AC, or story status
-- Introduce new architecture, dependencies, or patterns not in `Architecture.md`
-- Modify files outside a story's Allowed Scope
-- Add dependencies not listed in `Architecture.md` Tech Stack
-- Add npm runtime dependencies (production artifact is a single HTML file with no node_modules)
-- Modify build pipeline (`scripts/build.js`) without explicit story permission
-
-If such changes are required, the Coding Agent must stop and request a
-Backlog Update or Architecture Proposal.
+**Authority (adopted 2026-07-29 from the Purchase-Archive-v2 house model): the
+Governor decides.** Phase-gate sign-off, ADR amendments, and document conflicts
+are the Governor's own authority — there is no human approval checkpoint. Wim is
+informed through commit history and story logs, not consulted. House conventions
+still bound the Governor: `.backup` before destructive changes, Telegram only for
+actual problems, and anything that touches the live VPS deployment or the public
+GitHub remote remains escalation-worthy.
 
 ---
 
-## 2.4 Session Continuity Protocol
+## 0. Where the work happens now (ADR-010/011/012)
 
-Context windows close. Agent memory bridges the gap.
+**Read this before picking up any story.** This repo is no longer where the
+product's future is built. The Lovable-generated frontend is being **extracted,
+not adopted**: its application layer ports into Hestia
+(`/home/wlc3xkl/Personal-Assistant-App`) as a native `/energy` route, and the
+TanStack/shadcn scaffold is discarded. Every session therefore runs in one of
+three lanes:
 
-### How Memory Works
+| Lane | Where | What is allowed | Toolchain |
+|------|-------|-----------------|-----------|
+| **Maintenance** (ADR-012) | this repo, `src/` | exactly the four approved items — D1 fix, D2 fix, D3 unavailable-state gate, hardening rider. All other `src/` files are **frozen** | npm · Jest · ESLint · `scripts/build.js` |
+| **Extraction** (E2–E6) | Hestia's repo, under **Hestia's** governance | the port itself. This repo's Governor tracks it because decommission is gated on it, but does not gate it and does not spawn Builders into it | Hestia's Vite · Vitest · ESLint |
+| **Donor / capture** (E7) | this repo, `docs/` + the live API | R1 contract capture, documentation transfer, story logs | — |
 
-Claude Code **automatically injects** `MEMORY.md` into the system prompt at the start of
-every conversation. This is a platform feature — the agent does not need to read or load it
-manually. It is always present in context from the first message.
+**The design reference is mostly not in this repo.** Local `lovable/` holds
+exactly three staged files (`types/energy.ts`, `lib/energy-format.ts`,
+`hooks/useEnergyData.tsx`), each annotated with sign conventions, the R1
+`GridBucket` warning, and a PORT NOTE. The other ~2,300 portable lines —
+`PowerFlow.tsx`, `primitives.tsx`, `KpiStrip.tsx`, `mock-energy.ts`,
+`Skeletons.tsx`, `StatusBar.tsx`, `EnergyBalanceCard.tsx`, `CostStub.tsx`,
+`AnimatedNumber.tsx`, and the four Recharts views — exist **only in the Lovable
+cloud project** ("Energy Watch"). Staging them locally is RW-C02 and it precedes
+every port story that reads them; a vendor-hosted design reference is not a
+durable one (risk R12).
 
-**Key constraints**:
-- Only the **first 200 lines** of `MEMORY.md` are loaded. Lines beyond 200 are silently
-  truncated. This is a hard platform limit — keep the file concise.
-- Memory is **local to this machine**. It lives in `.claude/` outside the git repo and is
-  not committed, shared, or synced. If you work from a different machine, memory is empty.
-- Memory is a **guide, not gospel**. Git log + test results are the ground truth. Memory
-  helps the agent know where to look, not what to believe.
+Whatever is staged is a **read-only reference**: no story ships code from
+`lovable/` into this repo's `src/`, and editing a staged file to "fix" something
+is a scope violation. ~70% of the cloud project — 46 unimported shadcn
+components, ~44 dead runtime dependencies, the SSR/Nitro scaffold, the editor
+telemetry hooks — is discarded by ADR-010 and never ported or staged.
 
-### Memory Directory
+**Charting is settled: Recharts (Option A).** Decided 2026-07-30, recorded in
+the ADR-007 amendment. It binds the Hestia port only: Recharts is code-split
+behind the `/energy` route chunk and bundled like everything else — ADR-007's
+"no CDN resource of any kind" rule is unchanged, so no Recharts asset may ever
+load from a CDN. Consequence for workers: Recharts is **not** a
+dependency-escalation trigger in the extraction lane; every *other* dependency
+addition still is, and Recharts is not permitted in this repo's legacy `src/`
+at all (the legacy artifact keeps its Chart.js debt until decommission).
+
+---
+
+## 1. Role model
 
 ```
-.claude/projects/-Users-Wim-Webview-energy-dashboard/memory/
-├── MEMORY.md          # Auto-loaded into system prompt (max 200 lines)
-├── patterns.md        # Coding patterns, gotchas, lessons learned
-├── design.md          # Design tokens, UI decisions, rejection log
-└── {topic}.md         # Additional topic files as needed
+                 ┌──────────────────────────────────────────┐
+                 │    GOVERNOR — Fable 5 (main session)     │
+                 │    • Product Manager  (what & why)       │
+                 │    • Architect        (how & bounds)     │
+                 │    • Reviewer         (gate & quality)   │
+                 └────┬───────────┬───────────┬──────────┬──┘
+                      ▼           ▼           ▼          ▼
+              ┌────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+              │ SPEC AUTHOR│ │ BUILDER  │ │ VERIFIER │ │ OPERATOR │
+              │story tests │ │  (code)  │ │ (gates)  │ │ (deploy) │
+              │ Sonnet 5   │ │  Opus 5  │ │ Sonnet 5 │ │  Opus 5  │
+              └────────────┘ └──────────┘ └──────────┘ └──────────┘
 ```
 
-### MEMORY.md — What Goes In (max 200 lines)
+**Anti-bias invariant:** the model that authors a story's tests is never the
+model that implements it, and neither is the model that reviews it. Three model
+identities — Sonnet (spec/tests), Opus (code), Fable (governance) — so shared
+blind spots cannot survive both sides of a handoff.
 
-Keep this file a concise index of current state. It must contain:
+### Governor — **Fable 5** (this model, main conversation)
+Three hats, worn explicitly (announce which hat is speaking when it matters):
 
-1. **Current State**: What phase the project is in, what's actively being worked on
-2. **Key Facts**: Important discoveries, API capabilities, architecture decisions —
-   things a new session needs immediately to avoid repeating work
-3. **Backlog Status**: Which stories are done/in-progress/blocked
-4. **Resume Checklist**: Exact commands to reconstruct state in next session
-5. **Links to Topic Files**: Pointers to `patterns.md`, `design.md`, etc. for details
+- **Product Manager**: owns `docs/REWORK_BACKLOG.md` — priority, story
+  readiness, acceptance, the blocked register, and **phase-gate sign-off**. Only
+  the PM hat marks a story `status="done"`, and only the PM/Architect hats
+  resolve its `<decisions>` entries. Refuses scope creep; routes new ideas to
+  the parking lot.
+- **Architect**: owns `Architecture.md` and the ADRs. Authors/amends ADRs on own
+  authority (recording rationale in the ADR), answers workers' design
+  escalations, guards the Hard Constraints and the Sign Convention Reference.
+  Also owns `docs/FE_design.md` — the authoritative colour, type, spacing and
+  component spec for every presentation story.
+- **Reviewer**: reviews every Builder diff before it is committed. May not
+  rubber-stamp: every approval names what was checked; every rejection names
+  concrete findings (file:line, why, expected).
 
-**Do NOT put in MEMORY.md**: session-by-session logs, full research transcripts,
-verbose explanations, or anything that belongs in a topic file.
+The Governor **does not write feature code**. Trivial fixes (typo, config
+one-liner, prettier reflow) are allowed when spawning an agent is
+disproportionate — note them in the commit message. Everything else goes
+through a Builder.
 
-### Topic Files — When to Split
+### Spec Author — **Sonnet 5** subagent (spawn: `Agent` tool, `model: sonnet`)
+Turns an approved story's acceptance criteria into the **TEST SPEC and the
+actual failing tests**, producing the RED evidence before any Builder exists.
+The test layout follows the lane (§0): maintenance-lane tests are **Jest +
+jsdom** under `tests/<module>.test.js`, matching the existing 265-test suite;
+extraction-lane tests are **Vitest** in Hestia's suite (`*.test.ts` for pure
+logic, `*.test.tsx` for components). Owns those test files: the Builder may
+never modify them. Works
+strictly from the Story Contract draft — it translates ACs into tests; it does
+not invent scope. If an AC is untestable as written → `NEEDS-SPEC` back to the
+PM.
 
-Create a separate topic file (linked from MEMORY.md) when:
-- A topic exceeds 10-15 lines of detail (e.g., API endpoint inventory, debug notes)
-- Information is reference material read on-demand, not needed every session
-- Patterns/lessons accumulate over time (e.g., `patterns.md`)
+Tests must never require manual interaction or visual inspection. Permitted
+strategies: fixture-driven schema/shape assertions, sanity ranges, property
+checks (energy conservation, sign conventions), Testing Library component
+assertions, mocked `fetch`, fake timers. Fixtures must match the shapes
+documented in `Architecture.md` — and only shapes actually captured from the
+live API (HC-006); a fixture asserting an invented field is the defect that
+shipped D3.
 
-Topic files are **not auto-loaded**. The agent must explicitly read them when relevant.
+**The sign-convention and flow math must stay framework-free** — here that is
+`src/power-flow.js` and `src/energy-balance.js` (plain modules, no DOM); in
+Hestia it is a React-free `lib/energy/` module. That is where the
+highest-value tests go, and they must run without rendering anything. The D1
+invariant — *P1 `power_w = -2000` with Sungrow `export_power_w = 0` ⇒ non-zero
+solar→grid flow* — must exist in **both** suites (Architecture.md, Testing
+Strategy).
 
-### Governance Agent: End-of-Session Duties
+### Builder — **Opus 5** subagent (spawn: `Agent` tool, `model: opus`)
+Implements exactly one story per session. Receives a Story Contract with the
+Spec Author's failing tests already in place, and implements to GREEN. May read
+the whole repo; may write only within the story's stated scope, and **never a
+test file authored by the Spec Author** — if a test looks wrong, escalate,
+don't edit. May add its own micro unit tests (listed in the report; they
+supplement, never replace, the spec's tests).
 
-Before ending a session, the Governance Agent **must** update `MEMORY.md` with:
-1. **Active Work**: Stories in_progress, which agents were dispatched, expected outcomes
-2. **Completed Work**: Stories done this session, test results, commits made
-3. **Key Decisions**: Scope changes, cancellations, priority shifts, blockers discovered
-4. **Resume Checklist**: Exact commands to reconstruct state in next session
+Every source file the Builder touches gets a changelog header entry per §3.
 
-If MEMORY.md approaches 200 lines, move detail into topic files and replace with links.
+### Verifier — **Sonnet 5** subagent, **independent of both Author and Builder**
+A fresh session, never the one that wrote the spec or the code. Runs the gates,
+audits that the spec's tests are untouched by the Builder (`git diff` scope
+check), probes edges, returns a Verification Report. May write only under
+`tests/`; production-code fixes go back to a Builder via the Governor.
 
-### Context Window Pressure — Mandatory Memory Write
+### Operator — **Opus 5** subagent
+Executes deployments to the VPS via `./deploy.sh` per the Deployment Contract.
+No improvisation: anything not in `deploy.sh` is an escalation. Reports evidence
+(command output, container health, `/health` response) — never "done" without
+proof. **Standing caveat (R8):** `docker-compose.yml` pulls
+`ghcr.io/wluyckx/energy-dashboard:latest` while `deploy.sh` runs
+`docker compose build` on the VPS, so the artifact that was built is not
+provably the artifact that runs. Every deploy report must state which path
+actually produced the running image. The mismatch is accepted until
+decommission (E6), not fixed — but never assumed away.
 
-When the context window exceeds **90% capacity** (indicated by automatic message
-compression or a system warning), the agent **must immediately** write current state
-to `MEMORY.md` before continuing work. This is a hard rule — do not wait for session
-end.
+### Model pinning
+- Governor: Fable 5 or Opus, per the **model lanes** annotated in
+  `docs/REWORK_BACKLOG.md` as `model_lane`. Presentation and domain-logic
+  stories (power flow, energy balance, sign conventions, FE_design
+  conformance) are `model_lane: Fable` —
+  they require a Fable session for Story Contract drafting and the Review
+  Verdict. Infrastructure, build, and deployment stories may run
+  `model_lane: Opus` end-to-end. Either way the Governor is the interactive
+  session itself — never a worker model.
+- Spec Author & Verifier: spawn with `model: sonnet` explicitly.
+- Builder & Operator: spawn with `model: opus` explicitly.
+- Do not let workers inherit Fable; do not collapse Author and Builder onto one
+  model — that is the bias channel this structure exists to close.
+- If a Builder fails the same story twice, the Governor may escalate that story
+  to a Fable-model Builder as an exception, recorded in the story log. The Spec
+  Author is never escalated to Opus (would recreate the author-equals-coder
+  bias); its escape hatch is the fit boundary below.
 
-The write must include:
-1. Everything from "End-of-Session Duties" above (active work, completed work, decisions, resume checklist)
-2. Any in-flight agent IDs that can be resumed
-3. Enough context for a fresh session to continue seamlessly
-
-**Rationale**: Context compression loses narrative detail. Writing to memory before
-compression ensures continuity even if the session is interrupted or compacted.
-
-### Governance Agent: Start-of-Session Protocol
-
-When starting a new session:
-1. `MEMORY.md` is already in context — read it for orientation
-2. Run the Resume Checklist commands (typically: `git log`, test suite, check story status)
-3. Reconcile: if Coding Agents completed after last session closed, their work shows in
-   git log and test results but not in MEMORY.md — update accordingly
-4. Update story statuses based on ground truth (code + tests), not memory alone
-
-### Coding Agent: Reporting
-
-When a Coding Agent completes work (in a subagent), its results are returned to the
-Governance Agent within the same session. If the session closes before results arrive:
-- Work persists in git (if committed) and on filesystem
-- Next Governance session reconstructs state via git log + test suite
-- No data is lost, only the narrative context
-
-### Agent Coordination Rules
-
-When dispatching multiple Coding Agents in parallel on related stories:
-- Warn each agent about shared files that may be created/modified concurrently
-- Agents must **check before creating** shared files (e.g., barrel exports, route configs)
-- Agents must **read before editing** shared files
-- Expect minor merge conflicts in shared files — Governance resolves after completion
-
----
-
-## 3. Required Response Modes
-
-Every response must declare **exactly one** mode:
-
-- Analysis — reasoning only
-- Task Contract — intake confirmation before coding
-- Code Change — implementation only
-- Architecture Proposal — ADR, no code
-- Backlog Update — story or backlog edits
-- Blocked — refusal (mandatory grammar)
-
----
-
-## 4. Context Loading Rules (Strict)
-
-Before coding, the Coding Agent **must** load (in this order):
-
-### Mandatory (Load First)
-1. `CLAUDE.md` — This file (operating manual)
-2. `SKILL.md` — Security skill (always apply)
-3. `Architecture.md` — Full document, especially:
-   - Tech Stack
-   - Directory Structure
-   - Key Components
-   - Development Patterns
-   - Testing Strategy
-4. `docs/FE_design.md` — Required for ALL presentation stories (any story with `<design_intent>`). Contains the authoritative color system, typography, spacing, component designs, and interaction specifications.
-5. Exactly one story file from `docs/stories/` (e.g., `docs/stories/phase-1-foundation.md`)
-
-### Forbidden
-- Loading multiple stories simultaneously (load only the one being implemented)
-- Unrelated modules not in story's Allowed Scope
-- Guessing file structures or API contracts
-- Making assumptions about undocumented behavior
-
-If required context is missing or ambiguous, the agent is Blocked.
-
----
-
-## 5. Definition of Ready (Pre-Flight Check)
-
-Before the Coding Agent may begin ANY story, ALL conditions must be true:
-
-### Story Requirements
-- [ ] Story status is **pending** or explicitly assigned
-- [ ] Story has explicit Acceptance Criteria
-- [ ] Story has a Test Plan
-- [ ] Story has Dependencies listed (or "None")
-
-### TDD Requirements (for TDD-mandated stories)
-- [ ] Story has "Test-First Requirements" section
-- [ ] Test fixtures or mocks identified
-- [ ] Expected behavior documented (where applicable)
-- [ ] Mock strategy defined (for external dependencies)
-
-### Agent Requirements
-- [ ] Agent has loaded `CLAUDE.md` (this file)
-- [ ] Agent has loaded `SKILL.md` (security skill)
-- [ ] Agent has loaded **full** `Architecture.md`
-- [ ] Agent has loaded the **single** story file being implemented
-- [ ] Agent has NOT loaded other stories
-
-### Architecture Verification
-- [ ] Tech stack matches Architecture.md Tech Stack section
-- [ ] Directory structure matches Architecture.md Directory Structure section
-- [ ] Patterns match Architecture.md Development Patterns section
-
-### Design Verification
-- [ ] `docs/FE_design.md` loaded for stories with `<design_intent>` element
-- [ ] Color tokens referenced by CSS custom property names from FE_design.md (e.g., `--solar`, `--grid-import`)
-- [ ] Typography follows FE_design.md type scale (data font for numbers, body font for labels)
-- [ ] Component layout matches FE_design.md component specification
-
-### Domain Verification
-- [ ] Sign conventions documented for any energy flow logic (P1 positive=import, Sungrow battery positive=charge)
-- [ ] API endpoint contracts referenced from Architecture.md (not guessed)
-- [ ] Production HTML size impact estimated (must stay under 200 KB)
-
-If ANY condition is false, the agent is Blocked. Do not proceed.
+**Spec-Author fit boundary.** The Spec Author's job is *translation* of explicit
+ACs into test code — that confinement is what keeps the anti-bias invariant
+meaningful. Sonnet 5 can be trusted with fixtures, `fetch` mocks and DOM
+assertions, but for **energy-domain stories the Architect hat supplies the
+sign conventions and edge cases as explicit, numbered items in the Story
+Contract's ACCEPTANCE CRITERIA** (e.g. "with `p1.power_w = -2000` and
+`sungrow.export_power_w = 0`, `computeFlows` must report a non-zero
+solar→grid flow"). Flow direction is the one thing this dashboard cannot get
+wrong (`Architecture.md`, Presentation Principles) — never leave it to a
+worker to infer. Fable specifies *what* to test but authors no test code and no
+production code; the Builder sees the tests only as an immovable target. Keep
+Story Contracts self-contained and small — a Spec Author must never need to
+read the whole repo to write the tests, whatever its context window.
 
 ---
 
-## 6. Task Intake Gate (No Exceptions)
+## 2. Contracts (the explicit role interfaces)
 
-No code may be written until a **Task Contract** has been produced and validated.
+Every handoff uses these shapes. A handoff missing required fields is returned,
+not worked around.
 
-### Minimum Required Intake
-- Story ID (e.g., STORY-001)
-- Story file path (e.g., `docs/stories/phase-1-foundation.md`)
-- Acceptance Criteria (explicit checklist from story)
-- Test Plan (from story)
-- Allowed Scope (files/modules to be created or modified)
-- Architecture sections consulted (list specific sections)
+### 2.1 Story Contract — PM → Spec Author → Builder
+The contract is built in two steps by two different models:
 
-Missing information means the agent is Blocked.
-
----
-
-## 7. Task Contract (Required Format)
-
-### Task Contract Template
+**Step 1 — PM drafts** (Fable, PM hat):
 ```
-Task Contract
-
-- Story ID: [e.g., STORY-001]
-- Story file: [e.g., docs/stories/phase-1-foundation.md]
-- Goal (1 sentence): [What this story accomplishes]
-- Acceptance Criteria:
-  - [ ] AC1: ...
-  - [ ] AC2: ...
-- Test Plan: [How to verify]
-- Intended changes (files/modules):
-  - [file1]
-  - [file2]
-- Out of scope: [What will NOT be changed]
-- Architecture consulted:
-  - Tech Stack
-  - Directory Structure
-  - [other relevant sections]
-- Stop conditions (what forces escalation):
-  - [e.g., "If new dependency needed"]
-  - [e.g., "If production HTML exceeds 200 KB"]
+STORY: <id + title from docs/REWORK_BACKLOG.md>
+GOAL: <one sentence, user-visible outcome>
+ACCEPTANCE CRITERIA: <verbatim from backlog, sharpened; for energy-domain or
+            presentation stories the Architect hat adds explicit numbered
+            sign-convention invariants and FE_design references here>
+IN SCOPE: <files the Builder may create or modify>
+OUT OF SCOPE: <explicit non-goals; neighboring modules that must not change>
+BINDING CONSTRAINTS: <HC/ADR ids + Architecture.md sections + FE_design.md
+            component spec that apply>
+CONTEXT: <pointers: prior stories, fixtures, API contract sections —
+          self-contained enough that the Spec Author needs no repo exploration>
 ```
 
----
+**Step 2 — Spec Author delivers** (Sonnet):
+```
+TEST SPEC: <each AC → named test cases, 1:1 traceable to AC numbers>
+TEST FILES: <failing tests, in the lane's layout per §1>
+RED EVIDENCE: <runner output (Jest here, Vitest in Hestia) showing the new tests
+              fail for the right reason (assertion — not "module not found" or a
+              typo)>
+NEEDS-SPEC: <or, instead of the above: the AC that cannot be expressed as a
+            test, and why>
+```
+The Governor (PM hat) approves the spec — approval is gatekeeping, not
+authorship; Fable may reject with findings but never writes or edits the test
+code. Only after approval is a Builder spawned.
 
-## 8. Architecture Change Gate
+**TDD is mandatory** for URL/config parsing, API clients, data transformers, and
+energy-flow calculations. It is the default everywhere else. The Spec Author
+produces the failing tests first (RED); the Builder writes the minimum
+production code to pass (GREEN), then refactors under green. No production code
+without a pre-existing failing test. If the Builder discovers missing coverage
+mid-build, it notes the gap in its report (and may add a micro-test); spec-level
+gaps go back to the Spec Author via the Governor.
 
-Any change affecting:
-- System structure or layer boundaries
-- Data flow between layers
-- Dependencies (adding new packages)
-- Directory conventions
-- API contracts or polling intervals
-- URL parameter schema
-- Sign conventions for energy flow values
-- CDN dependencies (e.g., Chart.js version)
+### 2.2 Implementation Report — Builder → Reviewer
+```
+STORY: <id>
+STATUS: DONE | BLOCKED(<reason>) | NEEDS-SPEC(<question>)
+CHANGES: <file list with one-line purpose each — must contain no test file
+          authored by the Spec Author>
+AC EVIDENCE: <each acceptance criterion → the Spec Author test(s) now passing>
+TDD EVIDENCE: <GREEN: full test-runner output after implementation. Own
+              micro-tests listed with reason>
+GATES: <the lane's gate set from §3 — actual output, never "should pass">
+CHANGELOG: <confirmation that every modified source file has a dated header
+            entry with the story id>
+DEVIATIONS: <anything done differently than the story/ADRs said — normally
+             empty, because deviations require escalation BEFORE doing them>
+SELF-REVIEW: <the one thing most likely to be wrong with this change>
+```
+Rules: no new dependency — runtime or dev — without escalation (**Recharts is
+pre-approved for the extraction lane only**, per ADR-007 as amended; nothing
+else is), and **no CDN resource of any kind** (ADR-007: everything ships from
+the bundle, self-hosted fonts included); no edits outside IN SCOPE; no changes
+to the build config or the bundle-budget gate without explicit story permission
+— `scripts/build.js` and the 200 KB gate in the maintenance lane, `vite.config.ts`
+and the `/energy` route-chunk budget in Hestia; **no token-handling code of any
+kind** (HC-002: there is nothing to handle — no bridge, no URL fallback, no
+storage, no scrubbing); secrets never in code, fixtures, or committed output;
+failing tests are reported as failing, not massaged.
 
-requires:
-1. Architecture Proposal
-2. Update to `Architecture.md`
-3. Explicit approval from Governance Agent before implementation
+### 2.3 Verification Report — Verifier → Governor
+```
+STORY: <id>
+GATES: <the lane's command set from §3, with real output>
+       maintenance: eslint <zero warnings> | prettier | jest <n passed/failed>
+                    | build <KB vs the 200 KB legacy gate>
+       extraction:  eslint | prettier | tsc --noEmit | vitest <n>
+                    | build <gzipped KB of the /energy chunk vs the HC-005 budget>
+       coverage <% for the touched modules vs 80% target>
+TDD AUDIT: <every AC in the Story Contract maps to ≥1 test that fails when the
+            behavior is broken (spot-check by reverting a key line); tests
+            assert behavior, not implementation details; git diff confirms the
+            Builder touched no Spec Author test file>
+SIGN CONVENTION: <pass/fail/not-applicable — for any story touching
+            power-flow.js, energy-balance.js, charts.js, p1-card.js or
+            kpi-strip.js, confirm every field read matches the Sign Convention
+            Reference in Architecture.md, including fields documented as
+            unreliable on this firmware>
+DESIGN: <pass/fail/not-applicable — tokens by CSS custom-property name, type
+         scale, 8px spacing grid, 44×44px touch targets, prefers-reduced-motion,
+         WCAG AA contrast, per docs/FE_design.md>
+SECURITY: <SKILL.md checklist result: input validation, no hardcoded
+           IPs/URLs/secrets, no XSS vector, no inline handlers, CSP-compatible,
+           **no CDN resource at all** (ADR-007 — SRI is not an alternative),
+           **no token-handling code** and no non-same-origin request target
+           (HC-002)>
+ADVERSARIAL: <what was attempted beyond the gates: malformed API payloads,
+              null/NaN fields, offline paths, stale-cache behavior — and what
+              happened>
+VERDICT: PASS | FAIL(<findings>)
+```
+The SIGN CONVENTION gate is mandatory and non-waivable for energy-flow stories.
+A field the API nominally exposes but that `Architecture.md` records as
+unreliable counts as a FAIL if the code reads it as authoritative.
 
-The Coding Agent must STOP and escalate. Do not proceed with unapproved changes.
+### 2.4 Review Verdict — Reviewer → (Builder | repo)
+```
+VERDICT: APPROVE | CHANGES | REJECT
+CHECKED: <what the review actually examined>
+FINDINGS: <for CHANGES/REJECT: file:line, defect, why it matters, expected>
+```
+- `APPROVE` → Governor commits (see §3 conventions).
+- `CHANGES` → same Builder, findings verbatim. **Max 2 change-cycles**; the
+  third failure is a `REJECT`.
+- `REJECT` → story returns to the PM hat for re-scoping (story was probably too
+  big or under-specified — that is a PM defect, log it as such).
 
----
+### 2.5 Deployment Contract — Governor → Operator
+```
+DEPLOY: <tag/commit approved for release>
+PROCEDURE: <the deploy.sh path being exercised>
+PRECONDITIONS: <all gates green locally, dist/dashboard.html under 200 KB,
+                docker-compose image source confirmed to match the artifact
+                being shipped>
+VERIFY: <container health status, GET /health returns OK, dashboard loads and
+         the power flow diagram renders live values>
+ROLLBACK: <exact procedure if verify fails>
+```
+Operator returns evidence for every VERIFY item. A failed VERIFY triggers the
+stated rollback immediately, then escalation — never debugging live in prod.
+The build artifact and the running container must be provably the same
+artifact; if `docker-compose.yml` pulls a registry image, the Operator confirms
+that image was built from the approved commit, or escalates.
 
-## 9. Refusal Requirement & Grammar
+### 2.6 Escalation Contract — any worker → Governor (STOP work first)
+Mandatory escalation triggers:
+1. Change would contradict an ADR or a Hard Constraint (HC-002…HC-006).
+2. API contract, polling interval, or sign convention change not named in the
+   story.
+3. A field the story requires is not documented in `Architecture.md`'s API
+   Integration section (or `docs/project_idea.md` for register-level legacy
+   detail) — **guessing an API contract is forbidden** (HC-006). The P1
+   `/v1/series` bucket shape is the live example: unknown, blocking, and R1
+   until captured.
+4. Anything touching tokens, credentials, cookies, or auth logic — including
+   *removing* it, unless the story is maintenance-lane item 4.
+5. New dependency (runtime or dev) other than the ADR-007-approved Recharts in
+   the extraction lane; any CDN resource; or a change to the build config
+   (`scripts/build.js` here, `vite.config.ts` in Hestia).
+6. The build would exceed the bundle budget for its lane (200 KB legacy artifact;
+   the HC-005 `/energy` route-chunk budget once pinned at E4).
+7. Destructive operation (data deletion, force-push, VPS mutation).
+8. Ambiguous AC discovered mid-build (late `NEEDS-SPEC` is allowed and preferred
+   over guessing).
+9. Work that belongs in another lane (§0): a `src/` change outside the four
+   ADR-012 maintenance items, any write into `lovable/`, or a port step that
+   needs Hestia's Governor rather than this one.
 
-When blocking, the agent **must** use this exact format:
+Escalations use this exact grammar — free-form refusals are not allowed:
 
-### Refusal Grammar
 ```
 Blocked
 
-Reason: [One of the defined reasons below]
-Missing: [What is needed to proceed]
-Action: [What must happen to unblock]
+Reason: <one of the reasons below>
+Missing: <what is needed to proceed>
+Action: <what must happen to unblock>
 ```
 
-### Valid Block Reasons
-- `story_not_ready` — Story missing AC, Test Plan, or Dependencies
-- `context_not_loaded` — Required documents not loaded
-- `scope_violation` — Request exceeds story's Allowed Scope
-- `architecture_change` — Change requires ADR approval
-- `ambiguous_requirement` — Story or Architecture unclear
-- `dependency_not_approved` — New package not in Architecture.md Tech Stack
-- `security_vulnerability` — Code introduces a security flaw
-- `unvalidated_input` — External input not properly validated
-- `secrets_exposed` — Credentials, API keys, or tokens in code
-- `sign_convention_violation` — Energy flow direction does not match documented sign convention
-- `payload_exceeded` — Change would push production HTML over 200 KB limit
-- `design_violation` — Visual output violates docs/FE_design.md specifications (colors, typography, layout, component anatomy)
+Valid reasons: `story_not_ready` · `context_not_loaded` · `scope_violation` ·
+`architecture_change` · `ambiguous_requirement` · `dependency_not_approved` ·
+`api_contract_unknown` · `security_vulnerability` · `unvalidated_input` ·
+`secrets_exposed` · `sign_convention_violation` · `payload_exceeded` ·
+`design_violation`.
 
-Free-form refusals are NOT allowed. Use the grammar above.
+Escalations are answered by the Architect or PM hat; the answer is appended to
+the story log, and — if it changed a rule — to the relevant ADR.
 
 ---
 
-## 10. Definition of Done (Enforced)
+## 3. Working conventions
 
-Work is Done only when:
-- [ ] All Acceptance Criteria are satisfied
-- [ ] Tests executed per Test Plan
-- [ ] No undocumented TODOs introduced
-- [ ] Changelog header added to all modified source files
-- [ ] Code passes linting (zero warnings)
-- [ ] Code passes formatting check
-- [ ] All tests pass with no failures
-- [ ] Documentation on all public APIs
-- [ ] Security checklist passed (per Section 13)
-- [ ] Story status updated by Governance Agent
-- [ ] Production build succeeds and output is under 200 KB
-- [ ] Sign conventions verified for any energy flow logic
-- [ ] Visual output matches docs/FE_design.md for presentation stories
-- [ ] Accessibility: prefers-reduced-motion respected, WCAG AA contrast, minimum 44x44px touch targets
+### Story logs — persisted state, not conversational state
+Every story that leaves the backlog gets `docs/stories/<STORY-ID>.md`. **Each
+handoff is appended to the log the moment it happens**: the Story Contract
+draft, the Spec Author's deliverable and its approval/rejection, every
+Implementation Report, Verification Report, and Review Verdict, the
+change-cycle count, and any escalations with their answers. The log is the
+single source of truth for in-flight state — a fresh session resumes any story
+by reading its log, and must never rely on a prior session's conversation
+having survived. A story is not `done` in `docs/REWORK_BACKLOG.md` until its
+log shows APPROVE + the commit ref.
 
-## 10b. Governance agent after scoped task execution.
-The governance agent asks user to /clear context when all parallel tasks launched by the governance agents are marked done.
----
+The existing per-phase files (`docs/stories/phase-*.md`) are the historical
+record of Phases 1–5 and are not rewritten; new stories get their own log.
 
-## 11. Code File Documentation Standard
+### Session flow (Governor)
+1. Open `docs/REWORK_BACKLOG.md`; check `docs/stories/` for any story left
+   in-flight by a previous session — **resume those from their logs first**.
+   Otherwise pick the top open story in priority order, confirm its lane (§0)
+   and that nothing in the blocked register or `<decisions>` gates it, and
+   create its log. A lane-E story is tracked here but executed under Hestia's
+   governance — do not spawn Builders into Hestia's repo from this session.
+2. PM hat: draft the Story Contract into the log (goal, sharpened ACs, scope,
+   binding constraints; Architect hat adds numbered sign-convention and
+   FE_design invariants for domain and presentation stories). A story that
+   resists test translation goes back to the backlog for re-slicing.
+3. Spawn Spec Author (Sonnet 5): TEST SPEC + failing tests + RED evidence. PM
+   hat approves or rejects with findings (never edits the tests). Append
+   outcome to the log.
+4. Spawn Builder (Opus 5) with the contract and the failing tests. On DONE →
+   spawn Verifier (fresh Sonnet 5). Append both reports to the log.
+5. Reviewer hat: read the diff itself (not just the reports) → verdict, into
+   the log.
+6. On APPROVE: commit, tick the story `done` with commit ref, update memory if a
+   durable lesson emerged.
+7. Batch-friendly: independent stories may run parallel pipelines, but a single
+   source file is owned by one Builder at a time, and a story's Spec Author
+   always completes before its Builder starts. In the maintenance lane
+   `index.html` and `src/app.js` are shared by almost everything — warn parallel
+   Builders, and have them read before editing.
 
-All source files must include a header:
+### Quality gates
+Run by the Verifier on every story; the Governor does not commit past a red gate.
+The command set follows the lane (§0).
 
+**Maintenance lane — this repo. Package manager is npm; `package-lock.json` is
+the gated dependency baseline.**
+
+```bash
+npm run lint             # eslint src/ — zero errors AND zero warnings
+npm run format           # prettier --check .
+npm test                 # jest — all 265+ pass
+npm run build            # node scripts/build.js — dist/dashboard.html < 200 KB
+```
+
+Two of these are **red on `main` today** (measured 2026-07-30) and RW-M01 exists
+to clean them before any other maintenance story runs:
+
+- `npm run lint` → 2 errors, 3 warnings. `P1Card` is not defined at
+  `src/app.js:191` and `:419` (missing from `.eslintrc.json` globals);
+  `IMPORT_GLOW`, `EXPORT_GLOW`, `BG_CARD` are unused in `src/p1-card.js`.
+- `npm run format` → 8 files. Five are ours (`docker-compose.yml`,
+  `index.html`, `src/app.js`, `src/charts.js`, `src/p1-card.js`); three are the
+  staged `lovable/` reference files, which get a `.prettierignore` entry rather
+  than a restyle.
+- `npm test` → 265 passed, 8 suites, green. Coverage ~51% against the 80%
+  target.
+
+Inheriting a red gate is not permission to add to it.
+
+**Extraction lane — Hestia's repo, Hestia's toolchain and thresholds.** Its
+Governor owns those gates; this repo's Verifier does not run them. Bun and
+`bun.lock` were part of the reversed as-is adoption (ADR-005) and bind nothing
+anywhere.
+
+Plus the non-command gates named in §2.3: sign convention, FE_design
+conformance, and the `SKILL.md` security checklist.
+
+### Binding constraints (full text in `Architecture.md`)
+| id | constraint |
+|----|-----------|
+| ~~HC-001~~ | **RETIRED 2026-07-29.** Single-file delivery is no longer a product constraint; the 200 KB inlined artifact survives only as the legacy pipeline's build gate until decommission. Number not reused. |
+| HC-002 | **No tokens in the client, in any form.** Caddy injects Bearer tokens server-side; the client makes same-origin requests carrying only the Hestia session cookie. Token-handling code — postMessage bridges, URL-token fallbacks, scrubbing, storage — is **forbidden outright**: there is nothing to handle. Where base-URL config exists at all (legacy iframe), it must resolve **same-origin**; an `https://` prefix check alone is a vulnerability. |
+| HC-003 | Graceful degradation: never a blank screen. Defined skeleton/stale/offline states, cached last-known values with a staleness indicator, deterministic mock data as the fallback of last resort — and never NaN or `undefined` rendered as data (defect D3 is the standing example). |
+| HC-004 | Dark mode only — **within the energy feature**, which is a deliberately scoped dark island inside the light-themed Hestia PWA. One token set, no toggle, no `prefers-color-scheme` switching, no theme parameter; tokens scoped so neither theme leaks. Makes no claim about Hestia's own theme. |
+| HC-005 | Static artifact, no server runtime for this feature. Legacy: static HTML on nginx. Target: Hestia's static Vite SPA behind Caddy — no SSR, no server functions, no runtime env vars as a config channel. Budgets apply to the **Hestia `/energy` route chunk**, pinned at E4 from the first real measurement (uncalibrated today — R9). |
+| HC-006 | API contracts are captured, never guessed. An undocumented response shape is a blocking escalation (`api_contract_unknown`), not an assumption. Sungrow `export_power_w` is the standing example of a field that exists but must never be read. |
+
+Domain rules that bind every Builder: poll rates 5 s realtime / 60 s balance /
+5 min timeline, **paused when the document is hidden, backing off on failure**
+(both required in the Hestia data layer at E3; both explicitly *not* retrofitted
+into the legacy artifact per ADR-012); all API communication over HTTPS and
+same-origin from the client's perspective; colours referenced by CSS
+custom-property name, never a literal hex; 8px spacing grid; animations respect
+`prefers-reduced-motion`; touch targets ≥ 44×44 px; numeric transitions animate
+(~400ms ease-out) rather than snapping.
+
+### Code file documentation
+Every source file carries a header; every meaningful change appends an entry,
+most recent first:
 ```javascript
 /**
  * Module description.
  *
  * CHANGELOG:
  * - YYYY-MM-DD: Description (STORY-XXX)
- *
- * TODO:
- * - Outstanding items
  */
 ```
 
-### Rules
-- CHANGELOG entry required for every meaningful change
-- Include story ID in each entry
-- Most recent entry at top
-- Remove completed TODOs after next sprint
+### Repo & git
+- Remote: **public** GitHub repo (`wluyckx/Webview-energy-dashboard`). Push
+  `main` after every approved story commit — the remote is the disaster-recovery
+  copy of both code and governance state (story logs included).
+- Because the remote is public, "never commit" is a security rule, not hygiene:
+  no `.env`, no tokens, **no internal IPs, LAN topology, Tailscale addresses, or
+  raw meter dumps**. Reconciliation output belongs in gitignored scratch, not in
+  the repo.
+- Commits: `<type>: <imperative summary>`, body lists AC evidence. Sign-off per
+  house rule: `Co-Authored-By: Claude <model> <noreply@anthropic.com>`.
+- `main` is always releasable. Stories land on branches
+  `story/STORY-017-<slug>`, merged by the Governor after APPROVE.
+- No pre-commit hook and no CI are installed today — the gates in §3 are the
+  Verifier's responsibility until one exists. Installing them is a backlog item,
+  not an excuse. Under ADR-011 this repo is heading for read-only archive, so
+  CI here is not worth building; Hestia's gates are the ones that will outlive
+  the transition.
+- ADR-011 disposition: **donor → transitional host → archive.** Governance state
+  (story logs, ADRs, the Sign Convention Reference, the R1 warning) is knowledge
+  that must survive archival — E5 transfers it into Hestia's documentation. Do
+  not treat a story log here as disposable because the repo is retiring; R10 is
+  precisely the risk of it stranding.
 
----
+### Mock mode & fixtures
+- Mock mode must keep working without any real credential, and ships in
+  production as the HC-003 fallback of last resort (`?mock=true`). Mock and live
+  data sources present the same shape behind one seam — `api-client.js` here,
+  `useEnergyData()` in Hestia; every new API path gets its mock counterpart in
+  the same story.
+- Fixtures mirror real API response shapes. A fixture that drifts from
+  `Architecture.md` is a defect in one of the two — escalate, don't pick a side
+  silently. A mock that invents a shape we have never observed is an
+  `api_contract_unknown` escalation (HC-006), not a fixture.
+- No test may depend on real network access or a real external service.
 
-## 12. Test-Driven Development (TDD) Mandate
+### House integration
+- Ops conventions from the homelab apply: Telegram alerts for problems only,
+  `.backup` before destructive changes, Tailscale-only access to internal hosts.
+- Persist durable lessons to agent-memory, but **reconcile before writing** —
+  search the subject first, then refine an existing node, supersede a changed
+  fact, or add only for a genuinely new subject. Never a near-duplicate topic.
+  Keep this file free of session-specific state.
 
-### TDD Classification
-
-| Category | TDD Mandate | Test Strategy |
-|----------|-------------|---------------|
-| URL Parameter Parsing | **Required** | Unit tests, edge cases for malformed input |
-| API Clients (P1, Sungrow) | **Required** | Mock-first, contract tests against expected JSON schemas |
-| Data Transformers | **Required** | Unit tests, sign convention validation |
-| Energy Flow Calculations | **Required** | Unit tests, property-based (conservation of energy) |
-| Chart Configuration | Recommended | Snapshot tests for config objects |
-| DOM Rendering | Recommended | JSDOM-based component tests |
-| Mock Data Generators | Recommended | Unit tests |
-| Utility Functions | Recommended | Unit tests |
-| CSS / Theming | N/A | Visual (manual) |
-| Documentation | N/A | - |
-
-### TDD Without Manual Inspection
-
-**CONSTRAINT**: Tests MUST NOT require manual interaction or visual inspection.
-
-**Allowed Test Strategies**:
-1. **Schema validation**: Output conforms to expected types and constraints
-2. **Sanity checks**: Values in reasonable ranges
-3. **Snapshot testing**: Auto-captured, reviewed once
-4. **Mock-based**: Mock external dependencies (fetch, DOM)
-5. **Property-based**: Mathematical/logical properties hold (e.g., energy balance)
-
-### TDD Workflow (Red-Green-Refactor)
-
-1. **RED**: Write failing test first
-   - Create test file before implementation file
-   - Tests verify expected behavior against mocks
-   - All tests must fail initially
-
-2. **GREEN**: Write minimal code to pass
-   - Only write enough code to make tests pass
-   - No premature optimization
-
-3. **REFACTOR**: Clean up while keeping tests green
-   - Improve code quality
-   - Tests must remain passing
-
----
-
-## 13. Security Directives (Mandatory)
-
-**Skill**: Security Guidelines (installed at `SKILL.md`)
-
-The `SKILL.md` file contains security guidelines. It is **automatically loaded** and must be followed for all code changes.
-
-All code must be written from a **security-first perspective**.
-
-### 13.1 Security Review Checklist (Per Code Change)
-
-Before any code is merged, verify:
-
-- [ ] No hardcoded IP addresses, API URLs, or credentials
-- [ ] No Secret Key Exposure (no API keys, tokens, or secrets in code or assets)
-- [ ] No Path Traversal (validate and sanitize file paths)
-- [ ] No Insecure Network Requests (HTTPS required for external APIs)
-- [ ] No unvalidated user input used in network requests or queries
-- [ ] No sensitive data logged in production
-- [ ] No insecure data storage (sensitive data encrypted at rest)
-
-### 13.2 Web-Specific Security
-
-- [ ] No XSS vectors (sanitize all user-facing output)
-- [ ] No inline event handlers (use addEventListener)
-- [ ] Content Security Policy compatible
-- [ ] URL parameter values must be validated (type, format, allowlist for known params)
-
-### 13.3 Input Validation (Hard Rules)
-
-All external input must be validated:
-
-| Input Source | Validation Required |
-|--------------|---------------------|
-| API JSON responses (P1, Sungrow) | Schema validation, type checking, null safety |
-| URL parameters (tokens, IDs, theme) | Type, format, allowlist for known params |
-| Chart.js CDN resource | Subresource integrity hash |
-| WebView postMessage events | Origin validation, type checking |
-| Timer/interval callbacks | Stale data detection, error boundaries |
-
-### 13.4 Security in Definition of Done
-
-Work is NOT Done if:
-- Any item in Security Checklist fails
-- Security tests not included for sensitive operations
-- Input validation missing for external data
-- Hardcoded secrets or URLs found in code
-
----
-
-## 14. Development Commands
-
-```bash
-# Lint (required before commit — zero warnings)
-npx eslint src/
-
-# Format (required before commit)
-npx prettier --check .
-
-# Test (all tests must pass)
-npx jest
-
-# Test with coverage
-npx jest --coverage
-
-# Build (inlines CSS+JS into single HTML — verify output < 200 KB)
-node scripts/build.js
-
-# Clean
-rm -rf dist/ coverage/
-```
-
----
-
-## 15. Project-Specific Rules
-
-### Hard Constraints
-
-### HC-001: Single-File Delivery
-**Constraint**: Production artifact must be a single self-contained HTML file (< 200 KB)
-**Rationale**: Loaded in Flutter WebView, no server to serve multiple files
-**Implications**:
-- All CSS and JS must be inlined during build
-- Separate files during development are fine (src/ directory)
-- Build step (`node scripts/build.js`) produces the final `dist/dashboard.html`
-**Allowed**: Chart.js via CDN, separate files during dev
-**Forbidden**: npm runtime dependencies, build frameworks (webpack, vite), multiple HTML files in production
-
-### HC-002: Secure Credential Delivery
-**Constraint**: Bearer tokens must be delivered via WebView bridge (postMessage), not URL parameters. Base URLs and device IDs may use URL parameters. If tokens appear in URL (dev/test fallback), they must be immediately scrubbed via `history.replaceState`.
-**Rationale**: URL parameters leak into browser history, server logs, crash reports, and Referer headers.
-**Implications**:
-- Dashboard waits for bootstrap postMessage with tokens before making API calls
-- Any tokens in URL params are scrubbed immediately after parsing
-- Tokens stored in JS memory only — never persisted
-- Mock mode must work without real credentials
-**Allowed**: URL parameters for non-sensitive config (base URLs, device IDs, mock). WebView bridge for tokens. Dev/test URL token fallback with immediate scrubbing.
-**Forbidden**: Hardcoded Bearer tokens in source code. Tokens remaining in URL bar after load. Tokens in localStorage/sessionStorage/cookies. Logging tokens to console.
-
-### HC-003: Graceful Degradation
-**Constraint**: Dashboard must never show a blank screen
-**Rationale**: Energy monitoring is a daily-use tool; stale data is better than no data
-**Implications**:
-- Every API call must have error handling with fallback UI
-- Cached last-known values displayed with staleness indicator
-- Mock data available as ultimate fallback
-**Allowed**: Cached last-known values with staleness indicator, mock data fallback
-**Forbidden**: Blank screens, unhandled errors that crash the UI
-
-### HC-004: Dark Mode Only
-**Constraint**: The dashboard is dark mode only. No light theme is supported.
-**Rationale**: This is an always-on monitoring tool. Dark backgrounds reduce eye strain and make colored energy flows pop. Design direction: "Calm Control Room" (per FE_design.md).
-**Implications**:
-- CSS custom properties define one theme only (dark)
-- No theme toggle UI, no theme URL parameter processing
-- All colors optimized for dark backgrounds
-**Allowed**: CSS custom properties for token consistency, dark background variations (base, surface, elevated)
-**Forbidden**: Light mode implementation, theme switching logic, white/light backgrounds
-
-### Domain-Specific Rules
-
-- All API communication must be over HTTPS
-- Poll rates must match the specified intervals (5s realtime, 60s balance, 5min timeline)
-- Sign conventions must be respected (P1 positive=import, Sungrow battery positive=charge)
-- Mock mode must be toggleable via `&mock=true` URL parameter
-- Both P1 and Sungrow APIs use Bearer token authentication delivered via WebView bridge (or URL fallback with immediate scrubbing)
-- Energy values must be displayed with correct units (W, kW, kWh) and appropriate precision
-- All colors must use CSS custom property tokens defined in docs/FE_design.md (e.g., `--solar`, `--grid-import`, `--bg-base`)
-- Typography must follow FE_design.md type scale (tabular-lining mono font for numbers, humanist sans for labels)
-- Spacing must follow 8px base grid (4, 8, 12, 16, 24, 32, 48, 64)
-- Animations must respect `prefers-reduced-motion` media query
-- Touch targets must be minimum 44x44px on mobile
-- Number value transitions must animate (~400ms ease-out), never snap
+### What this file is not
+Not a task list (that's `docs/REWORK_BACKLOG.md`), not the architecture (that's
+`Architecture.md`), not the visual spec (that's `docs/FE_design.md`), not a
+changelog (git). It defines **who does what, and what each handoff must
+contain**. Keep it stable; amend via Governor commit with rationale.
