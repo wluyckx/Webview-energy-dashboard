@@ -1,3 +1,28 @@
+/**
+ * STAGED DESIGN REFERENCE — READ ONLY (ADR-010 / RW-C02)
+ * Captured from the Lovable project "Energy Watch", 2026-07-30.
+ * Do NOT import into src/. Port destination: RW-E04. See lovable/MANIFEST.md.
+ *
+ * PORT NOTES:
+ * - `CHART_COLORS` below is the single most consequential thing in this file.
+ *   Every Recharts view (PowerTimeline, MonthlyOverview, grid.tsx, peak.tsx)
+ *   takes its colours from here as JS values, because Recharts needs colour
+ *   props rather than CSS classes. These nine literals are the concrete target
+ *   of RW-E15's token bridge (AC1–AC3): they become a palette module derived
+ *   from the FE_design custom properties, with a test asserting the two sides
+ *   cannot drift.
+ * - The values are hex-identical to the corresponding `styles.css` tokens —
+ *   `solar` = --solar, `gridImport` = --grid-import, and so on — with `axis`
+ *   and `grid` having no direct token counterpart. Those two are the ones to
+ *   escalate under DEC-01 rather than inventing a token for.
+ * - `fmtTime` / `fmtDateTime` hardcode the "en-GB" locale, which makes them
+ *   both TZ- and ICU-dependent. Every staging agent flagged the same hazard in
+ *   the components: any test asserting formatted output needs a pinned
+ *   timezone and locale, or it will pass locally and fail elsewhere.
+ * - Framework-free — no React import. Keep it that way; this is the kind of
+ *   module RW-E04 puts under test without rendering anything.
+ */
+
 export const W_TO_KW = 1000;
 
 export function kw(watts: number): number {

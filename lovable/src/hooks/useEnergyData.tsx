@@ -1,3 +1,9 @@
+/**
+ * STAGED DESIGN REFERENCE — READ ONLY (ADR-010 / RW-C02)
+ * Captured from the Lovable project "Energy Watch", 2026-07-30.
+ * Do NOT import into src/. Port destination: RW-E05. See lovable/MANIFEST.md.
+ */
+
 import {
   createContext,
   useContext,

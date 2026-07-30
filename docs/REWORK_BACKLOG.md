@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>29</total_stories>
-  <done>1</done>
-  <progress>3%</progress>
+  <done>2</done>
+  <progress>7%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-C02 done — 19 files staged locally, R12 closed. Staging surfaced 12 findings in the reference (lovable/MANIFEST.md F1–F12); the consequential ones are now ACs on RW-E16/E17/E18, and F1 is recorded as new risk R13.</entry>
     <entry date="2026-07-30">RW-M01 done — all four maintenance-lane gates green on main for the first time (lint 0/0, format clean, 265 tests, 130.7 KB build).</entry>
     <entry date="2026-07-30">Created from Architecture.md extraction plan E1–E7 + ADR-012 maintenance lane. Charting settled as Recharts (ADR-007 amendment 2), so chart stories are unblocked rather than pending a decision.</entry>
   </changelog>
@@ -360,7 +361,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Reference: Architecture.md E7, risk R1, HC-006. Needs a live-API session — schedule it; it does not need the port.</notes>
 </story>
 
-<story id="RW-C02" status="open" complexity="S" tdd="not-applicable" lane="C" model_lane="Opus">
+<story id="RW-C02" status="done" complexity="S" tdd="not-applicable" lane="C" model_lane="Opus" log="docs/stories/RW-C02.md">
   <title>Stage the portable Lovable files locally before anything depends on them</title>
   <dependencies>None</dependencies>
   <description>
@@ -674,6 +675,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <acceptance_criteria>
     <ac id="AC1">Built on RW-E15's shared chart layer: palette module for colours, shared tooltip and axis defaults, central reduced-motion handling, mocked container in tests. This story adds no chart chrome of its own.</ac>
     <ac id="AC2">Solar / grid / battery areas render around a zero baseline; home load overlay; battery SoC curve on the secondary axis.</ac>
+    <ac id="AC2b">**The grid series must NOT be ported as the reference computes it.** `lovable/MANIFEST.md` finding F1 / risk R13: the staged `PowerTimeline` derives grid from Sungrow (`avg_load_power_w − avg_pv_power_w + avg_battery_power_w`) rather than reading the authoritative P1 `power_w` — the same class of error as D1. A P1-sourced history series is entangled with R1, so this is an **escalation at port** (`api_contract_unknown`), not a copy. Shipping the inverter-derived series would put a number on screen that disagrees with the KPI strip beside it.</ac>
     <ac id="AC3">Signed series render on the correct side of zero for both grid directions and both battery directions — the DP-003 assertion applies to charts too.</ac>
     <ac id="AC4">Multi-series crosshair tooltip works and reports the correct series values at the hovered bucket.</ac>
     <ac id="AC5">Every colour comes from a token, not a `CHART_COLORS` hex literal (RW-E04 AC2 is a hard dependency here).</ac>
@@ -689,7 +691,9 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <acceptance_criteria>
     <ac id="AC1">Built on RW-E15's shared chart layer; adds no chart chrome of its own.</ac>
     <ac id="AC2">Paired daily bars for the current month; net-export days green; today emphasised.</ac>
-    <ac id="AC3">Sign-stacked bars place net import and net export on the correct sides — asserted for a mixed-sign month. Uses Recharts' `stackOffset="sign"` rather than a hand-computed diverging stack; hand-computing this is the D1/D2 error class waiting to happen.</ac>
+    <ac id="AC3">Sign-stacked bars place net import and net export on the correct sides — asserted for a mixed-sign month. Uses Recharts' `stackOffset="sign"` **with a `stackId`** rather than a hand-computed diverging stack; hand-computing this is the D1/D2 error class waiting to happen.</ac>
+    <ac id="AC3b">Do not inherit the reference's arrangement (`lovable/MANIFEST.md` F5): it sets `stackOffset="sign"` but gives neither Bar a `stackId`, so the offset is **inert** and direction comes from a pre-negated datum — which draws export days *upward* into the solar bar's half-plane, contradicts the card's own copy, and leaves colour as the only discriminator. The hardcoded corner radii encode the wrong assumption too.</ac>
+    <ac id="AC3c">Null gate required (`lovable/MANIFEST.md` F5): the reference calls `row.solar.toFixed(1)` with no guard anywhere, so a missing field renders NaN and a null throws. HC-003 forbids both.</ac>
     <ac id="AC4">Colours from RW-E15's palette module only; no literal.</ac>
     <ac id="AC5">Empty month and single-day month render without throwing.</ac>
     <ac id="AC6">This is one of the two candidates for hand-rolling if RW-E15 AC11's lever is pulled — if it was, this story ships hand-rolled SVG in the `SpendingBarChart.tsx` idiom instead, and says so.</ac>
@@ -709,6 +713,8 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
     <ac id="AC1">Current monthly peak with timestamp, from P1 `/v1/capacity/month/{YYYY-MM}`.</ac>
     <ac id="AC2">Threshold gauge against the 2.5 kW Belgian residential reference, marker at 62.5% of a 4.0 kW scale, escalating `--success` → `--warning` → `--danger` at 75% and 100% of reference. All three bands asserted.</ac>
     <ac id="AC3">Live headroom from a client-side 15-minute rolling average of `import_power_w`, **labelled indicative** — it approximates the meter's quarter-hour alignment and must not claim to be the meter's own figure (DP-002).</ac>
+    <ac id="AC3b">**The reference gets this wrong and must not be copied** (`lovable/MANIFEST.md` F3): it divides an *instantaneous* reading by a 15-minute-average peak and presents it unhedged as "You're at N% of this month's peak right now." Port the architecture's version — rolling average, labelled indicative — not the staged sentence.</ac>
+    <ac id="AC3c">Guard the divide (`lovable/MANIFEST.md` F4): the reference guards `headroom` with `peakW > 0` but leaves the adjacent `toneFor(liveImportW / peakW)` unguarded, so on day one of a month the ratio is NaN and the gauge falls through to `--danger` — an alarming red beside a 0% reading. Assert the `peakW === 0` case renders a defined state in a calm tone.</ac>
     <ac id="AC4">`peaks[]` chart across the month with the bill-setting bar in coral, built on RW-E15's shared chart layer. This is the second candidate for hand-rolling if RW-E15 AC11's lever is pulled (~60 lines of plain bars).</ac>
     <ac id="AC4b">The threshold gauge is **not** a chart-library artifact — it is hand-rolled SVG or CSS, since no chart library helps with a single-value gauge and pulling one in for it would be waste.</ac>
     <ac id="AC5">Plain-language tariff explainer — no jargon, no fabricated euro amount.</ac>

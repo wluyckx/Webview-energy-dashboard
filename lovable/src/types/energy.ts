@@ -1,4 +1,10 @@
 /**
+ * STAGED DESIGN REFERENCE — READ ONLY (ADR-010 / RW-C02)
+ * Captured from the Lovable project "Energy Watch", 2026-07-30.
+ * Do NOT import into src/. Port destination: RW-E04. See lovable/MANIFEST.md.
+ */
+
+/**
  * Energy data contract.
  *
  * These shapes mirror the two upstream REST APIs exactly (P1 smart meter and
