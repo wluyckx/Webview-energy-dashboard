@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>30</total_stories>
-  <done>23</done>
-  <progress>77%</progress>
+  <done>28</done>
+  <progress>93%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-E16 through RW-E20 done (Hestia STORY-103 to 107) - ALL FOUR CHART VIEWS plus the grid history: timeline (R13 resolved via P1), monthly (F5 fixed), capacity (real scale, F3/F4), grid Live ring and Day/Month/Year from the captured contract. Only knowledge transfer (RW-E21) and cutover (RW-E22, gated by this repo) remain.</entry>
     <entry date="2026-07-30">RW-E15 done (Hestia STORY-102, PR #16) — chart foundation: recharts added, token bridge drift-tested, jsdom harness, and the REAL BUNDLE MEASUREMENT closing R9 (route chunk 97.9 KB gz, recharts+d3 ~89 KB, under estimate). The four chart views (RW-E16..E19/E20) build on this next.</entry>
     <entry date="2026-07-30">RW-E12..E14 done (Hestia STORY-099..101, PRs #13-#15) — the LIVE-DATA TIER: same-origin schema-validating client (HC-002 as code), per-source scheduler with visibility gating + backoff, cold-open mock fallback framed offline. Next: charts (RW-E15 foundation adds recharts + pins the real bundle budget).</entry>
     <entry date="2026-07-30">RW-E05 through RW-E11 done in one auto-mode run (Hestia STORY-092..098, PRs #6-#12) — the SCREENS-ON-MOCK MILESTONE: the native island renders end-to-end at /energy/native, code-split (7.4 KB gz measured), with the donor anatomy, i18n EN/NL/FR throughout, and every port-time correction applied (tokenised hexes, reduced-motion flash suppression, neutral balanced accent, the balance card consuming rather than recomputing). Next tier: live data (RW-E12..E14).</entry>
@@ -723,7 +724,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </notes>
 </story>
 
-<story id="RW-E16" status="open" complexity="L" lane="E" model_lane="Fable">
+<story id="RW-E16" status="done" complexity="L" lane="E" model_lane="Fable" note="Hestia STORY-103 (PR #17): power timeline dual-axis; R13 RESOLVED - grid from authoritative P1 avg_power_w, not the staged Sungrow identity">
   <title>Power timeline — 24h, dual axis (Recharts)</title>
   <dependencies>RW-E15</dependencies>
   <acceptance_criteria>
@@ -739,7 +740,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E17" status="open" complexity="S" lane="E" model_lane="Fable">
+<story id="RW-E17" status="done" complexity="S" lane="E" model_lane="Fable" note="Hestia STORY-104 (PR #18): monthly overview; F5 corrected (real stackId); weekly P1 net + binned Sungrow daily solar; month source added">
   <title>Monthly overview — paired daily bars</title>
   <dependencies>RW-E15</dependencies>
   <acceptance_criteria>
@@ -755,7 +756,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Complexity dropped from M to S: the bundle measurement and budget pin moved to RW-E15, where they belong (first Recharts import, earliest signal).</notes>
 </story>
 
-<story id="RW-E18" status="open" complexity="L" lane="E" model_lane="Fable">
+<story id="RW-E18" status="done" complexity="L" lane="E" model_lane="Fable" note="Hestia STORY-105 (PR #19): capacity; dynamic gauge scale (real 7.36 kW visible), F4 guards, F3 indicative rolling headroom; /peak route">
   <title>Capacity peak screen — the Belgian tariff view</title>
   <dependencies>RW-E14, RW-E15</dependencies>
   <description>
@@ -777,7 +778,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E19" status="open" complexity="M" lane="E" model_lane="Fable">
+<story id="RW-E19" status="done" complexity="M" lane="E" model_lane="Fable" note="Hestia STORY-106 (recovered merge): grid Live tab client-side ring; tabs deferred then filled">
   <title>Grid detail — Live tab only</title>
   <dependencies>RW-E14, RW-E15</dependencies>
   <acceptance_criteria>
@@ -790,7 +791,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
 </story>
 
-<story id="RW-E20" status="blocked" complexity="M" lane="E" model_lane="Fable" blocked_by="RW-C01">
+<story id="RW-E20" status="done" complexity="M" lane="E" model_lane="Fable" blocked_by="RW-C01" note="Hestia STORY-107 (PR #20): grid Day/Month/Year from the captured P1 contract; weekly month frame, gaps preserved, GridBucket dead; year source added">
   <title>Grid detail — Day / Month / Year tabs</title>
   <dependencies>RW-C01, RW-E19</dependencies>
   <acceptance_criteria>
