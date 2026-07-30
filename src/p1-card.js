@@ -10,28 +10,26 @@
  * Purple (#c084fc) = grid import, Green (#34d399) = grid export.
  *
  * CHANGELOG:
+ * - 2026-07-30: Remove three dead design-token constants; prettier reflow (RW-M01)
  * - 2026-03-20: Initial creation — HomeWizard-inspired P1 card
  */
 
 // eslint-disable-next-line no-unused-vars
 var P1Card = (function () {
   // ─── Design tokens ────────────────────────────────────────────────
-  var IMPORT_COLOR = '#c084fc';     // Purple — grid consumption
-  var IMPORT_GLOW  = '#c084fc40';
-  var EXPORT_COLOR = '#34d399';     // Emerald — grid export (surplus)
-  var EXPORT_GLOW  = '#34d39940';
-  var BG_CARD      = '#111820';
-  var BG_ELEVATED  = '#1a2230';
-  var TEXT_PRIMARY  = '#e8ecf1';
+  var IMPORT_COLOR = '#c084fc'; // Purple — grid consumption
+  var EXPORT_COLOR = '#34d399'; // Emerald — grid export (surplus)
+  var BG_ELEVATED = '#1a2230';
+  var TEXT_PRIMARY = '#e8ecf1';
   var TEXT_SECONDARY = '#8899aa';
-  var TEXT_DIM      = '#4a5568';
-  var BORDER        = '#1e2a3a';
+  var TEXT_DIM = '#4a5568';
+  var BORDER = '#1e2a3a';
 
   // ─── State ────────────────────────────────────────────────────────
   var currentView = 'live';
   var chart = null;
-  var liveBuffer = [];            // Rolling buffer for live view
-  var LIVE_BUFFER_SIZE = 60;      // 5 minutes at 5s polling
+  var liveBuffer = []; // Rolling buffer for live view
+  var LIVE_BUFFER_SIZE = 60; // 5 minutes at 5s polling
   var pollTimer = null;
 
   // ─── Helpers ──────────────────────────────────────────────────────
@@ -256,7 +254,9 @@ var P1Card = (function () {
           ticks: {
             color: TEXT_DIM,
             font: { size: 10 },
-            callback: function (v) { return formatWatts(v); },
+            callback: function (v) {
+              return formatWatts(v);
+            },
           },
           grid: { color: BORDER, drawBorder: false },
           border: { display: false },
@@ -320,13 +320,17 @@ var P1Card = (function () {
           ticks: { color: TEXT_DIM, font: { size: 10 }, maxRotation: 0 },
           grid: { display: false },
           border: { display: false },
-          title: xTitle ? { display: true, text: xTitle, color: TEXT_SECONDARY } : { display: false },
+          title: xTitle
+            ? { display: true, text: xTitle, color: TEXT_SECONDARY }
+            : { display: false },
         },
         y: {
           ticks: {
             color: TEXT_DIM,
             font: { size: 10 },
-            callback: function (v) { return v.toFixed(0); },
+            callback: function (v) {
+              return v.toFixed(0);
+            },
           },
           grid: { color: BORDER, drawBorder: false },
           border: { display: false },
@@ -352,7 +356,7 @@ var P1Card = (function () {
 
       // Sanity: if the values are huge (cumulative Wh readings), normalize
       if (importDelta > 1000) {
-        importDelta = curr.avg_power_w * 1 / 1000; // fallback to avg_power * 1h / 1000
+        importDelta = (curr.avg_power_w * 1) / 1000; // fallback to avg_power * 1h / 1000
       }
       if (exportDelta > 1000) {
         exportDelta = 0;
@@ -408,15 +412,25 @@ var P1Card = (function () {
     if (liveEl) {
       var pw = data.power_w || 0;
       var sign = pw >= 0 ? '' : '-';
-      liveEl.innerHTML = '<span class="p1-card__live-dot p1-card__live-dot--active"></span>' +
-        '<span>' + sign + formatWatts(Math.abs(pw)) + '</span>';
+      liveEl.innerHTML =
+        '<span class="p1-card__live-dot p1-card__live-dot--active"></span>' +
+        '<span>' +
+        sign +
+        formatWatts(Math.abs(pw)) +
+        '</span>';
     }
 
     // Update chart
     if (!chart) return;
-    chart.data.labels = liveBuffer.map(function (p) { return timeLabel(p.time); });
-    chart.data.datasets[0].data = liveBuffer.map(function (p) { return p.import_w; });
-    chart.data.datasets[1].data = liveBuffer.map(function (p) { return -p.export_w; });
+    chart.data.labels = liveBuffer.map(function (p) {
+      return timeLabel(p.time);
+    });
+    chart.data.datasets[0].data = liveBuffer.map(function (p) {
+      return p.import_w;
+    });
+    chart.data.datasets[1].data = liveBuffer.map(function (p) {
+      return -p.export_w;
+    });
     chart.update('none');
   }
 
@@ -437,7 +451,20 @@ var P1Card = (function () {
       } else if (frame === 'month') {
         labels.push(date.getDate());
       } else {
-        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
         labels.push(months[date.getMonth()]);
       }
       importData.push(d.import_kwh);

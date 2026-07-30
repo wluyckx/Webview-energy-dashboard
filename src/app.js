@@ -54,8 +54,7 @@ const App = (() => {
 
     var desc = document.createElement('p');
     desc.className = 'dashboard-section__placeholder';
-    desc.textContent =
-      'The dashboard could not start due to missing or invalid configuration:';
+    desc.textContent = 'The dashboard could not start due to missing or invalid configuration:';
     panel.appendChild(desc);
 
     var list = document.createElement('ul');

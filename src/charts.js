@@ -233,9 +233,7 @@ var Charts = (function () {
             backgroundColor: hexToRgba(COLORS.batteryCharge, 0.2),
             segment: {
               borderColor: function (ctx) {
-                return ctx.p1.parsed.y >= 0
-                  ? COLORS.batteryCharge
-                  : COLORS.batteryDischarge;
+                return ctx.p1.parsed.y >= 0 ? COLORS.batteryCharge : COLORS.batteryDischarge;
               },
               backgroundColor: function (ctx) {
                 return ctx.p1.parsed.y >= 0
@@ -256,9 +254,7 @@ var Charts = (function () {
             backgroundColor: hexToRgba(COLORS.gridExport, 0.2),
             segment: {
               borderColor: function (ctx) {
-                return ctx.p1.parsed.y >= 0
-                  ? COLORS.gridExport
-                  : COLORS.gridImport;
+                return ctx.p1.parsed.y >= 0 ? COLORS.gridExport : COLORS.gridImport;
               },
               backgroundColor: function (ctx) {
                 return ctx.p1.parsed.y >= 0

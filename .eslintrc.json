@@ -19,6 +19,7 @@
     "KpiStrip": "readonly",
     "EnergyBalance": "readonly",
     "Charts": "readonly",
+    "P1Card": "readonly",
     "Chart": "readonly"
   },
   "rules": {
