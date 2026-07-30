@@ -5,9 +5,15 @@
  * Sums hourly buckets to derive production, export, import, battery
  * charge/discharge, consumption, self-consumption rate, and self-sufficiency rate.
  *
+ * Import and export are derived from the conservation identity
+ * (load − pv + battery) over documented, reliable fields; the unreliable
+ * avg_export_power_w field is never read.
+ *
  * STORY-010: Today's Energy Balance
  *
  * CHANGELOG:
+ * - 2026-07-30: Derive import/export from the grid identity instead of the dead
+ *   avg_export_power_w field; skip malformed buckets whole (RW-M03)
  * - 2026-02-15: Initial implementation (STORY-010)
  */
 
@@ -18,6 +24,8 @@ const EnergyBalance = (() => {
    *
    * Iterates over hourly buckets and sums power values, converting W to kWh
    * (each bucket represents one hour, so W / 1000 = kWh for that hour).
+   * Buckets whose pv/load/battery values are not all finite numbers are
+   * skipped whole, so no output field can ever be NaN (HC-003).
    *
    * @param {Object} seriesData - Sungrow series day response with .series array.
    * @returns {Object} Balance object with production, export, import,
@@ -32,12 +40,41 @@ const EnergyBalance = (() => {
     var totalConsumption = 0;
 
     seriesData.series.forEach(function (bucket) {
-      totalProduction += bucket.avg_pv_power_w / 1000;
+      // Malformed-bucket guard (HC-003): the grid identity below needs all
+      // three fields at once, so a bucket missing any of them is unusable
+      // ENTIRELY and contributes 0 to every total — production and consumption
+      // included. Zeroing only the bad field would fabricate a phantom grid
+      // value out of a partial bucket (load 800 with pv coerced to 0 reads as
+      // a fake 800 W import) and break energy conservation, so the whole
+      // bucket is skipped instead.
+      if (
+        !Number.isFinite(bucket.avg_pv_power_w) ||
+        !Number.isFinite(bucket.avg_load_power_w) ||
+        !Number.isFinite(bucket.avg_battery_power_w)
+      ) {
+        return;
+      }
 
-      if (bucket.avg_export_power_w > 0) {
-        totalExport += bucket.avg_export_power_w / 1000;
-      } else {
-        totalImport += Math.abs(bucket.avg_export_power_w) / 1000;
+      totalProduction += bucket.avg_pv_power_w / 1000;
+      totalConsumption += bucket.avg_load_power_w / 1000;
+
+      // Signed grid power, derived from the conservation identity over
+      // documented, reliable fields only:
+      //   grid = load − pv + battery
+      // P1 sign convention: positive = import, negative = export (battery
+      // positive = charging, which adds to household demand, hence added).
+      //
+      // avg_export_power_w is NOT read here and must never be: it is the
+      // series average of the always-0 field on this firmware (HC-006, Sign
+      // Convention Reference). Deriving both totals from it was defect D2 —
+      // export and import both collapsed to 0, so every day reported 100%
+      // self-consumption and 100% self-sufficiency.
+      var gridSignedW =
+        bucket.avg_load_power_w - bucket.avg_pv_power_w + bucket.avg_battery_power_w;
+      if (gridSignedW > 0) {
+        totalImport += gridSignedW / 1000;
+      } else if (gridSignedW < 0) {
+        totalExport += Math.abs(gridSignedW) / 1000;
       }
 
       if (bucket.avg_battery_power_w > 0) {
@@ -45,8 +82,6 @@ const EnergyBalance = (() => {
       } else {
         totalBatteryDischarge += Math.abs(bucket.avg_battery_power_w) / 1000;
       }
-
-      totalConsumption += bucket.avg_load_power_w / 1000;
     });
 
     var selfConsumption = totalProduction > 0 ? (1 - totalExport / totalProduction) * 100 : 0;

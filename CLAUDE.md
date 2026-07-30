@@ -113,6 +113,18 @@ one-liner, prettier reflow) are allowed when spawning an agent is
 disproportionate — note them in the commit message. Everything else goes
 through a Builder.
 
+**Lightweight lane (formalised 2026-07-30, generalising what RW-M01 did ad
+hoc).** A story may be marked `pipeline="light"` in the backlog when ALL hold:
+`tdd="not-applicable"`, the change is mechanical (config, formatting,
+documentation, file staging), and machine-checkable gates fully adjudicate
+success. Light stories: the Governor executes directly, the four gates plus any
+story-specific check (semantic-diff, secrets sweep) are the evidence, and the
+**commit message is the story log** — no `docs/stories/` file unless an
+escalation occurred. Cost measured at ~10× below a full pipeline with nothing
+lost *for this class*. The lane is an attribute assigned at backlog time, in
+writing — never a mid-story downgrade, and never applicable to anything the
+SIGN CONVENTION or SECURITY gates would examine substantively.
+
 ### Spec Author — **Sonnet 5** subagent (spawn: `Agent` tool, `model: sonnet`)
 Turns an approved story's acceptance criteria into the **TEST SPEC and the
 actual failing tests**, producing the RED evidence before any Builder exists.
@@ -210,6 +222,18 @@ not worked around.
 ### 2.1 Story Contract — PM → Spec Author → Builder
 The contract is built in two steps by two different models:
 
+**Evidence rule (adopted 2026-07-30).** Every factual claim a Story Contract
+makes about the codebase — file lists, line numbers, which tests pin what, "the
+mock is consistent", "only these files fail the gate" — must carry the command
+output that proves it, or be explicitly marked `ASSUMED`. Claims verified at
+drafting time cost one command; the same claims caught downstream cost a
+worker escalation and a change-cycle. Adopted after five contract-precision
+defects in one session (RW-M01 file count, RW-M05 scope, RW-M02 malformed-input
+behaviour, RW-M03 conservation claim ×2), every one of which was a claim one
+command would have settled. A worker that finds an unmarked, unverified claim
+to be false escalates it as `story_not_ready` — that is a contract defect, and
+the story log records it as such.
+
 **Step 1 — PM drafts** (Fable, PM hat):
 ```
 STORY: <id + title from docs/REWORK_BACKLOG.md>
@@ -284,9 +308,26 @@ GATES: <the lane's command set from §3, with real output>
                     | build <gzipped KB of the /energy chunk vs the HC-005 budget>
        coverage <% for the touched modules vs 80% target>
 TDD AUDIT: <every AC in the Story Contract maps to ≥1 test that fails when the
-            behavior is broken (spot-check by reverting a key line); tests
-            assert behavior, not implementation details; git diff confirms the
-            Builder touched no Spec Author test file>
+            behavior is broken; tests assert behavior, not implementation
+            details; git diff confirms the Builder touched no Spec Author test
+            file>
+MUTATION: <MANDATORY for domain-logic stories (anything the SIGN CONVENTION
+           gate applies to), discretionary elsewhere. Build the story class's
+           named mutants as scratch copies — never editing src/ — and report
+           each as killed-by-<named test> or SURVIVED. Minimum set for
+           energy-flow stories: (1) revert to the pre-story derivation,
+           (2) the direction/sign flip, (3) drop any new guard, plus any
+           blind spot the Spec Author self-flagged. A SURVIVED mutant is a
+           finding, not a footnote: the Governor either routes it back to the
+           Spec Author as a new pin or records an explicit acceptance in the
+           story log. Rationale: mutation testing produced the highest
+           value-per-token of any verification activity measured (2026-07-30)
+           — it is the only check that distinguishes a test suite that pins
+           behaviour from one that merely accompanies it.>
+           In exchange, the Verifier no longer re-transcribes full gate output
+           the Reviewer will re-run anyway — GATES may be reported as
+           pass/fail per command plus the test count and bundle size, with
+           full output only for failures.
 SIGN CONVENTION: <pass/fail/not-applicable — for any story touching
             power-flow.js, energy-balance.js, charts.js, p1-card.js or
             kpi-strip.js, confirm every field read matches the Sign Convention
@@ -386,15 +427,24 @@ the story log, and — if it changed a rule — to the relevant ADR.
 ## 3. Working conventions
 
 ### Story logs — persisted state, not conversational state
-Every story that leaves the backlog gets `docs/stories/<STORY-ID>.md`. **Each
-handoff is appended to the log the moment it happens**: the Story Contract
-draft, the Spec Author's deliverable and its approval/rejection, every
-Implementation Report, Verification Report, and Review Verdict, the
-change-cycle count, and any escalations with their answers. The log is the
-single source of truth for in-flight state — a fresh session resumes any story
-by reading its log, and must never rely on a prior session's conversation
-having survived. A story is not `done` in `docs/REWORK_BACKLOG.md` until its
-log shows APPROVE + the commit ref.
+Every full-pipeline story gets `docs/stories/<STORY-ID>.md` (light-lane stories
+log in the commit message instead — see §1). **Each handoff is appended to the
+log the moment it happens.** The log is the single source of truth for
+in-flight state — a fresh session resumes any story by reading its log, and
+must never rely on a prior session's conversation having survived. A story is
+not `done` in `docs/REWORK_BACKLOG.md` until its log shows APPROVE + the commit
+ref.
+
+**Log discipline (adopted 2026-07-30): record decisions and deltas, not
+re-narration.** What the log must contain in full: the Story Contract, every
+Governor ruling and escalation answer, verdicts with their reasons, the
+change-cycle count, and anything that *diverged* from a report. What it must
+NOT do: re-narrate worker reports in fresh prose — append the report's
+conclusion lines and its surprises, and point to the commit message for the
+rest. Measured cost of re-narration was 40–50% of log volume for zero added
+resumability. The test of a good log: a fresh session can resume the story
+from it; an auditor can find every decision in it; nobody reads the same
+paragraph twice.
 
 The existing per-phase files (`docs/stories/phase-*.md`) are the historical
 record of Phases 1–5 and are not rewritten; new stories get their own log.

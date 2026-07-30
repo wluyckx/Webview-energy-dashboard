@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>29</total_stories>
-  <done>4</done>
-  <progress>14%</progress>
+  <done>5</done>
+  <progress>17%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-M03 done — D2 fixed: import/export from the conservation identity over documented fields; malformed buckets skipped whole; five mutants killed; self-sufficiency leaves 100% for the first time. Two Spec Author escalations upheld, incl. catching a false contract claim.</entry>
     <entry date="2026-07-30">RW-M02 done — D1 fixed: solarToGrid from P1 signed power_w with a non-finite guard; mock dead-field fiction zeroed. 17 new tests incl. the D1 pin; direction-flip and dead-field mutants killed; R7 closed. New defect D4 (charts.js:70, same field family) recorded in Architecture.md, disposition deferred to the RW-M03 derivation.</entry>
     <entry date="2026-07-30">RW-M05 done — bridge and URL-token fallback deleted, base-URL validation now parsed same-origin. R3 and R6 closed by removal. Verifier PASS across 24 attack classes; two mutation tests killed, the second by exactly the one test written for the prefix-bypass class.</entry>
     <entry date="2026-07-30">RW-C02 done — 19 files staged locally, R12 closed. Staging surfaced 12 findings in the reference (lovable/MANIFEST.md F1–F12); the consequential ones are now ACs on RW-E16/E17/E18, and F1 is recorded as new risk R13.</entry>
@@ -242,7 +243,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Reference: Architecture.md ADR-012 maintenance item 1, defect table D1, risk R7.</notes>
 </story>
 
-<story id="RW-M03" status="open" complexity="M" tdd="mandatory" lane="M" model_lane="Fable">
+<story id="RW-M03" status="done" complexity="M" tdd="mandatory" lane="M" model_lane="Fable" log="docs/stories/RW-M03.md">
   <title>D2 — energy balance must not derive import and export from the same dead field</title>
   <dependencies>RW-M01</dependencies>
   <description>

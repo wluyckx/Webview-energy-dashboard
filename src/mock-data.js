@@ -11,6 +11,8 @@
  * STORY-004: Mock Data System
  *
  * CHANGELOG:
+ * - 2026-07-30: Document series avg_export_power_w as unreliable and unread by the
+ *   balance; no values changed (RW-M03)
  * - 2026-07-30: Pin realtime export_power_w to 0 — dead field on this firmware (RW-M02)
  * - 2026-02-15: Initial implementation (STORY-004)
  */
@@ -90,6 +92,11 @@ const MockData = (() => {
     return {
       device_id: 'inverter-01',
       frame: 'day',
+      // avg_export_power_w below is unreliable on this firmware (it reads 0 on
+      // the real device) and is never read by the energy balance, which derives
+      // import/export from load − pv + battery instead (RW-M03). The values are
+      // kept for shape fidelity only; charts.js still reads them (defect D4, a
+      // separate decision).
       series: [
         {
           bucket: todayAt(6),
@@ -205,6 +212,10 @@ const MockData = (() => {
     return {
       device_id: 'p1-meter-01',
       frame: 'day',
+      // avg_export_power_w below is unreliable on this firmware and is never
+      // read by the energy balance (which uses the Sungrow series and the
+      // load − pv + battery identity, RW-M03). Kept for shape fidelity only;
+      // the real P1 /v1/series bucket shape is still uncaptured (R1).
       series: [
         {
           bucket: todayAt(6),

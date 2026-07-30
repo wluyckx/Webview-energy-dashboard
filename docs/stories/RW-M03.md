@@ -52,11 +52,17 @@ per hourly bucket, exactly as the module already converts.
   sign-convention-consistent, not literally P1-sourced.
 - It is the same identity the staged Hestia mock uses, so the two
   implementations will agree at RW-E20 test-transfer time.
-- **Verified before drafting**: the mock's bucket values are internally
-  conservation-consistent (e.g. hour with pv 50, load 800, battery −100 →
-  signed grid +650, matching the mock's `avg_export_power_w: −650` under its
-  invented positive=export convention). Consequence: mock-mode balance numbers
-  are **unchanged** by this fix — the mock's fiction and the identity agree.
+- ~~"Verified before drafting: the mock's bucket values are internally
+  conservation-consistent … mock-mode balance numbers are unchanged."~~
+  **CORRECTED 2026-07-30 (Spec Author escalation)**: the Governor verified ONE
+  bucket and generalised. The Spec Author computed all ten: only 2 of 10 are
+  conservation-consistent, so mock-mode numbers DO change under the fix — from
+  the dead field's invented totals (export 5.95 / import 1.25 / 73.61% / 90.91%)
+  to the identity-derived, self-consistent ones (export 8.95 / import 0.95 /
+  ≈60.31% / ≈93.09%). Architect ruling: the change is correct — the old numbers
+  were fiction — and AC8 is rewritten to pin the identity-derived totals as the
+  post-fix regression lock. Fifth contract-precision defect this session, and
+  the second caught by a worker checking what the contract asserted.
 - `avg_export_power_w` must not be read anywhere in the module afterwards —
   reading a field Architecture.md records as unreliable is an automatic
   Verification FAIL (§2.3).
@@ -127,24 +133,52 @@ behaviour this story preserves — they must stay green untouched.
 
 ---
 
-## Spec Author deliverable (Sonnet 5)
+## Pipeline record (slim log per the 2026-07-30 CLAUDE.md log discipline —
+decisions and deltas; full reports live in the commit message and transcripts)
 
-*Pending — pipeline starts after RW-M02 merges.*
+**Spec (Sonnet)** — 33 tests, AC-named, 3 defect-pinning tests replaced with
+REPLACED comments. RED 28→29 (after AC8 rewrite) / 308. **Two escalations, both
+upheld**: (1) AC8's premise false — only 2 of 10 mock buckets
+conservation-consistent, contradicting the contract's claim (Governor error:
+verified one bucket, generalised). Ruling: mock numbers change deliberately;
+AC8 pins the identity-derived totals (export 8.95 / import 0.95 / SC ≈60.31 /
+SS ≈93.09), independently recomputed by the Spec Author before pinning.
+(2) AC6 whole-bucket-vs-per-field ambiguity — whole-bucket CONFIRMED with
+rationale (per-field zeroing fabricates phantom grid values and breaks
+conservation). PM verified RED independently; approved.
 
----
+**Build (Opus)** — GREEN 308/308 first pass. Identity implemented verbatim;
+guard via `Number.isFinite` on all three fields; `avg_export_power_w` zero code
+reads (3 prose mentions). Mock diff purely additive comments — re-verified by
+the Reviewer directly. Deviations: JSDoc degradation note (approved); numeric
+strings skipped not coerced — **ratified per the RW-M02 AC10g precedent** and
+pinned as AC6b (309). Builder's probes: all-malformed day → all-zeros +
+SS 100, no NaN (HC-003 holds; the "100% on zero data" display consequence is
+routed to the RW-M04 contract draft); Infinity→NaN ratio path unreachable from
+the API (needs ~1000 buckets of ~1e308 W) and pre-existing — accepted, no AC.
 
-## Implementation Report (Builder, Opus 5)
+**Verify (fresh Sonnet)** — PASS. Gates green; mock-data diff confirmed
+additive-only line-by-line; **all five mutants killed** (dead-field revert,
+identity sign flip, battery-sign error, per-field zeroing, guard drop) with
+named killing tests; AC traceability 1:1; SIGN CONVENTION per-field PASS
+including the cross-module check — computeBalance and computeFlows agree on
+direction for the same scenario, executed not assumed; AC8 totals reproduced
+independently a third time. Adversarial: negative-but-finite pv/load unguarded
+(finite ⇒ passes the guard) — judged out of AC6's stated scope, low severity,
+recorded not fixed. **Weakness found**: AC7, the named conservation test, was
+blind to battery-sign errors (its fixture had battery 0 throughout — mutant (c)
+passed AC7 while failing conservation algebraically).
 
-*Pending.*
+**Gap closure** — AC7b added (same invariant, mixed-sign battery fixture),
+green lock. Final: **310 passed / 310**, format clean repo-wide.
 
----
+**Review Verdict (Fable): APPROVE.** Checked the diff itself: derivation +
+guard + HC-006 record all at the point of decision; the else-if means a
+perfectly balanced bucket contributes to neither total (correct); battery split
+untouched; renderBalance untouched; mock values untouched. Gates re-run by the
+Reviewer: lint 0/0, format clean, 310/310, 133.4 KB.
 
-## Verification Report (Verifier, fresh Sonnet 5)
-
-*Pending.*
-
----
-
-## Review Verdict (Reviewer hat, Fable)
-
-*Pending.*
+**Production consequence**: self-consumption and self-sufficiency leave 100%
+for the first time since the card shipped. Mock-mode numbers change from the
+dead field's fiction to the self-consistent identity values — intended,
+documented, pinned.
