@@ -5,6 +5,12 @@
  * TDD: Tests written FIRST, before implementation.
  *
  * CHANGELOG:
+ * - 2026-07-30: RW-M05 hardening rider — delete postMessage/token-bridge and
+ *   token-scrubbing test coverage (AC1, AC2); replace https://-prefix URL
+ *   validation tests with same-origin validation tests (AC3); add graceful
+ *   degradation tests for a rejected base URL (AC4). `validSearch()` defaults
+ *   now use same-origin base URLs, since that is the only shape the target
+ *   implementation accepts (RW-M05)
  * - 2026-02-15: Initial test suite (STORY-002)
  */
 
@@ -22,12 +28,21 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Helper: build a valid search string with all required params
+// Helper: build a valid search string with all required params.
+//
+// p1_base/sungrow_base default to SAME-ORIGIN paths (RW-M05 AC3): under the
+// HC-002 rewrite, base URLs are same-origin proxied paths, not arbitrary
+// third-party hosts. Using window.location.origin here (rather than a
+// hardcoded host) keeps the whole suite origin-agnostic.
 // ---------------------------------------------------------------------------
+function sameOriginUrl(path) {
+  return window.location.origin + path;
+}
+
 function validSearch(overrides = {}) {
   const defaults = {
-    p1_base: 'https://api.p1.wimluyckx.dev',
-    sungrow_base: 'https://api.sungrow.wimluyckx.dev',
+    p1_base: sameOriginUrl('/api/p1'),
+    sungrow_base: sameOriginUrl('/api/sungrow'),
     p1_device_id: 'device-p1-001',
     sungrow_device_id: 'device-sg-001',
   };
@@ -46,8 +61,8 @@ describe('parseConfig - valid parameters', () => {
     expect(result.valid).toBe(true);
     expect(result.config).toEqual(
       expect.objectContaining({
-        p1_base: 'https://api.p1.wimluyckx.dev',
-        sungrow_base: 'https://api.sungrow.wimluyckx.dev',
+        p1_base: sameOriginUrl('/api/p1'),
+        sungrow_base: sameOriginUrl('/api/sungrow'),
         p1_device_id: 'device-p1-001',
         sungrow_device_id: 'device-sg-001',
         mock: false,
@@ -55,17 +70,11 @@ describe('parseConfig - valid parameters', () => {
     );
   });
 
-  test('returns valid config with all params including tokens', () => {
-    const search = validSearch({
-      p1_token: 'tok-p1-abc',
-      sungrow_token: 'tok-sg-xyz',
-    });
-    const result = Config.parseConfig(search);
-
-    expect(result.valid).toBe(true);
-    expect(result.config.p1_token).toBe('tok-p1-abc');
-    expect(result.config.sungrow_token).toBe('tok-sg-xyz');
-  });
+  // REMOVED (RW-M05 AC2): "returns valid config with all params including
+  // tokens" asserted that p1_token/sungrow_token supplied via URL params were
+  // parsed and attached to config.p1_token/config.sungrow_token. The URL
+  // token fallback is deleted outright — see "AC2: URL token fallback
+  // deleted" below, which asserts the opposite (tokens are never attached).
 });
 
 // ===========================================================================
@@ -102,52 +111,118 @@ describe('parseConfig - missing required params', () => {
 });
 
 // ===========================================================================
-// Test: invalid URL (http://) returns validation error
+// RW-M05 AC3: base-URL validation requires SAME-ORIGIN.
+//
+// REMOVED (RW-M05 AC3): the original "parseConfig - URL validation" describe
+// asserted that a p1_base/sungrow_base starting with "http://" is rejected
+// with a message mentioning "https://". That check is being REPLACED, not
+// supplemented — a same-origin requirement subsumes the https-prefix check
+// (production traffic is same-origin under Caddy, which is always https).
+// Keeping the old assertion (which checked for wording containing
+// "https://") would contradict the new error messaging. Replaced entirely by
+// the tests below.
 // ===========================================================================
-describe('parseConfig - URL validation', () => {
-  test('rejects p1_base that starts with http://', () => {
-    const search = validSearch({ p1_base: 'http://insecure.example.com' });
+describe('parseConfig - same-origin base URL validation (AC3)', () => {
+  test('AC3(a): accepts p1_base/sungrow_base that are same-origin with the page', () => {
+    const search = validSearch({
+      p1_base: sameOriginUrl('/api/p1'),
+      sungrow_base: sameOriginUrl('/api/sungrow'),
+    });
     const result = Config.parseConfig(search);
 
-    expect(result.valid).toBe(false);
-    expect(result.errors).toEqual(
-      expect.arrayContaining([expect.stringMatching(/p1_base.*https:\/\//i)])
-    );
+    expect(result.valid).toBe(true);
   });
 
-  test('rejects sungrow_base that starts with http://', () => {
-    const search = validSearch({ sungrow_base: 'http://insecure.example.com' });
+  test('AC3(b): rejects a cross-origin https:// p1_base even though the scheme is https', () => {
+    const search = validSearch({
+      p1_base: 'https://attacker.example.com/api',
+      sungrow_base: sameOriginUrl('/api/sungrow'),
+    });
     const result = Config.parseConfig(search);
 
     expect(result.valid).toBe(false);
-    expect(result.errors).toEqual(
-      expect.arrayContaining([expect.stringMatching(/sungrow_base.*https:\/\//i)])
-    );
+    expect(result.errors.some((e) => /p1_base/i.test(e))).toBe(true);
+  });
+
+  test('AC3(c): rejects a protocol-relative "//evil.example" p1_base', () => {
+    const search = validSearch({
+      p1_base: '//evil.example/api',
+      sungrow_base: sameOriginUrl('/api/sungrow'),
+    });
+
+    let result;
+    expect(() => {
+      result = Config.parseConfig(search);
+    }).not.toThrow();
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /p1_base/i.test(e))).toBe(true);
+  });
+
+  test('AC3(d): rejects a "javascript:" p1_base', () => {
+    const search = validSearch({
+      p1_base: 'javascript:alert(1)',
+      sungrow_base: sameOriginUrl('/api/sungrow'),
+    });
+
+    let result;
+    expect(() => {
+      result = Config.parseConfig(search);
+    }).not.toThrow();
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /p1_base/i.test(e))).toBe(true);
+  });
+
+  test('AC3(e): rejects a host that merely PREFIXES the real origin (classic bypass), same scheme as the page', () => {
+    const loc = new URL(window.location.origin);
+    const bypassUrl =
+      loc.protocol + '//' + loc.hostname + '.evil.com' + (loc.port ? ':' + loc.port : '') + '/api';
+    // Sanity: the bypass host really is a different origin from the page.
+    expect(bypassUrl).not.toBe(sameOriginUrl('/api'));
+
+    const search = validSearch({
+      p1_base: bypassUrl,
+      sungrow_base: sameOriginUrl('/api/sungrow'),
+    });
+    const result = Config.parseConfig(search);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /p1_base/i.test(e))).toBe(true);
+  });
+
+  test('AC3(e-2): rejects an https:// prefix-bypass host (localhost.evil.com), which a naive startsWith(origin) check would accept', () => {
+    const loc = new URL(window.location.origin);
+    const bypassUrl =
+      'https://' + loc.hostname + '.evil.com' + (loc.port ? ':' + loc.port : '') + '/api';
+
+    const search = validSearch({
+      p1_base: bypassUrl,
+      sungrow_base: sameOriginUrl('/api/sungrow'),
+    });
+    const result = Config.parseConfig(search);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /p1_base/i.test(e))).toBe(true);
+  });
+
+  test('AC3: sungrow_base is subject to the same same-origin requirement as p1_base', () => {
+    const search = validSearch({
+      p1_base: sameOriginUrl('/api/p1'),
+      sungrow_base: 'https://attacker.example.com/api',
+    });
+    const result = Config.parseConfig(search);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /sungrow_base/i.test(e))).toBe(true);
   });
 });
 
-// ===========================================================================
-// Test: empty token returns validation error
-// ===========================================================================
-describe('parseConfig - token validation', () => {
-  test('rejects empty p1_token', () => {
-    const search = validSearch({ p1_token: '' });
-    const result = Config.parseConfig(search);
-
-    expect(result.valid).toBe(false);
-    expect(result.errors).toEqual(expect.arrayContaining([expect.stringContaining('p1_token')]));
-  });
-
-  test('rejects empty sungrow_token', () => {
-    const search = validSearch({ sungrow_token: '' });
-    const result = Config.parseConfig(search);
-
-    expect(result.valid).toBe(false);
-    expect(result.errors).toEqual(
-      expect.arrayContaining([expect.stringContaining('sungrow_token')])
-    );
-  });
-});
+// REMOVED (RW-M05 AC2): "parseConfig - token validation" asserted that empty
+// p1_token/sungrow_token URL params produce a validation error. Since the URL
+// token fallback is deleted outright, there is no longer any token
+// validation step to test — token params are simply ignored (see
+// "AC2: URL token fallback deleted" below).
 
 // ===========================================================================
 // Test: mock=true parses to boolean true, defaults to false when omitted
@@ -186,85 +261,18 @@ describe('parseConfig - mock parameter', () => {
   });
 });
 
-// ===========================================================================
-// Test: tokens from URL params are scrubbed via history.replaceState
-// ===========================================================================
-describe('parseConfig - token scrubbing', () => {
-  test('scrubs tokens from URL via history.replaceState when tokens present', () => {
-    const search = validSearch({
-      p1_token: 'secret-p1',
-      sungrow_token: 'secret-sg',
-    });
+// REMOVED (RW-M05 AC1/AC2): "parseConfig - token scrubbing" asserted that
+// history.replaceState was called to strip token params from the URL bar.
+// Scrubbing logic is deleted outright — there is nothing to scrub because
+// tokens are never read from the URL in the first place. See
+// "AC1/AC2: postMessage token bridge and URL token fallback deleted" below,
+// which asserts history.replaceState is NEVER called by parseConfig.
 
-    Config.parseConfig(search);
-
-    expect(window.history.replaceState).toHaveBeenCalledTimes(1);
-
-    // The replaced URL should NOT contain the token values
-    const replacedUrl = window.history.replaceState.mock.calls[0][2];
-    expect(replacedUrl).not.toContain('secret-p1');
-    expect(replacedUrl).not.toContain('secret-sg');
-    expect(replacedUrl).not.toContain('p1_token');
-    expect(replacedUrl).not.toContain('sungrow_token');
-  });
-
-  test('does not call replaceState when no tokens in URL', () => {
-    const search = validSearch();
-
-    Config.parseConfig(search);
-
-    expect(window.history.replaceState).not.toHaveBeenCalled();
-  });
-
-  test('scrubs tokens even when required params are missing (HC-002)', () => {
-    // Token + missing required params — tokens must STILL be scrubbed
-    const search = '?p1_token=secret-leak&sungrow_token=secret-leak2';
-
-    const result = Config.parseConfig(search);
-
-    // Config should be invalid (missing required params)
-    expect(result.valid).toBe(false);
-    // But tokens must still have been scrubbed from URL
-    expect(window.history.replaceState).toHaveBeenCalledTimes(1);
-    const replacedUrl = window.history.replaceState.mock.calls[0][2];
-    expect(replacedUrl).not.toContain('secret-leak');
-    expect(replacedUrl).not.toContain('p1_token');
-    expect(replacedUrl).not.toContain('sungrow_token');
-  });
-});
-
-// ===========================================================================
-// Test: tokens received via postMessage (updateTokens) are stored in config
-// ===========================================================================
-describe('updateTokens - postMessage bridge', () => {
-  test('stores tokens provided via updateTokens', () => {
-    // First parse a valid config without tokens
-    const search = validSearch();
-    Config.parseConfig(search);
-
-    // Simulate receiving tokens via WebView bridge
-    Config.updateTokens({ p1_token: 'bridge-p1-tok', sungrow_token: 'bridge-sg-tok' });
-
-    const config = Config.getConfig();
-    expect(config.p1_token).toBe('bridge-p1-tok');
-    expect(config.sungrow_token).toBe('bridge-sg-tok');
-  });
-
-  test('overwrites URL-provided tokens with bridge tokens', () => {
-    const search = validSearch({
-      p1_token: 'url-p1-tok',
-      sungrow_token: 'url-sg-tok',
-    });
-    Config.parseConfig(search);
-
-    // Bridge delivers updated tokens
-    Config.updateTokens({ p1_token: 'new-bridge-p1', sungrow_token: 'new-bridge-sg' });
-
-    const config = Config.getConfig();
-    expect(config.p1_token).toBe('new-bridge-p1');
-    expect(config.sungrow_token).toBe('new-bridge-sg');
-  });
-});
+// REMOVED (RW-M05 AC1): "updateTokens - postMessage bridge" asserted that
+// Config.updateTokens stores tokens delivered via the WebView bridge and that
+// bridge tokens overwrite URL-provided tokens. Config.updateTokens is deleted
+// outright — see "AC1: postMessage token bridge deleted" below, which
+// asserts the function no longer exists.
 
 // ===========================================================================
 // Test: getConfig returns the current configuration
@@ -277,12 +285,108 @@ describe('getConfig', () => {
     const config = Config.getConfig();
     expect(config).toEqual(
       expect.objectContaining({
-        p1_base: 'https://api.p1.wimluyckx.dev',
-        sungrow_base: 'https://api.sungrow.wimluyckx.dev',
+        p1_base: sameOriginUrl('/api/p1'),
+        sungrow_base: sameOriginUrl('/api/sungrow'),
         p1_device_id: 'device-p1-001',
         sungrow_device_id: 'device-sg-001',
         mock: false,
       })
     );
+  });
+});
+
+// ===========================================================================
+// RW-M05 AC1: postMessage token bridge deleted.
+// RW-M05 AC2: URL token fallback and scrubbing deleted.
+//
+// "There is nothing to handle" (HC-002 rewrite): no code path may ever
+// extract a token from a postMessage or a URL param, and no scrubbing logic
+// should remain because there is nothing left to scrub.
+// ===========================================================================
+describe('AC1: postMessage token bridge deleted', () => {
+  test('Config.updateTokens no longer exists on the module', () => {
+    expect(Config.updateTokens).toBeUndefined();
+  });
+});
+
+describe('AC2: URL token fallback deleted', () => {
+  test('token params present in the URL are never attached to the parsed config', () => {
+    const search = validSearch({
+      p1_token: 'leaked-p1-token',
+      sungrow_token: 'leaked-sg-token',
+    });
+    const result = Config.parseConfig(search);
+
+    expect(result.valid).toBe(true);
+    expect(result.config).not.toHaveProperty('p1_token');
+    expect(result.config).not.toHaveProperty('sungrow_token');
+  });
+
+  test('does not call history.replaceState even when token params are present in the URL', () => {
+    const search = validSearch({
+      p1_token: 'leaked-p1-token',
+      sungrow_token: 'leaked-sg-token',
+    });
+
+    Config.parseConfig(search);
+
+    expect(window.history.replaceState).not.toHaveBeenCalled();
+  });
+
+  test('does not call history.replaceState when required params are also missing', () => {
+    // Token present, but required params missing — there is no "scrub then
+    // fail" path left, because there is no scrubbing at all any more.
+    const search = '?p1_token=leaked-token&sungrow_token=leaked-token-2';
+
+    const result = Config.parseConfig(search);
+
+    expect(result.valid).toBe(false);
+    expect(window.history.replaceState).not.toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// RW-M05 AC4: a rejected base URL degrades gracefully — never a crash,
+// never a config object built from a rejected URL, never a silent fetch
+// enabled against the rejected host.
+// ===========================================================================
+describe('AC4: rejected base URL degrades gracefully', () => {
+  // Both base URLs are cross-origin https:// hosts here (not one cross-origin
+  // + one same-origin default). That isolates the exact vulnerability: today's
+  // https://-prefix-only check accepts ANY https:// URL regardless of host, so
+  // using a same-origin default for the "other" param would let these tests
+  // pass today for the wrong reason (the other param failing its own,
+  // unrelated scheme check) rather than because p1_base itself was correctly
+  // rejected.
+  test('cross-origin p1_base is rejected without throwing and without exposing a config object', () => {
+    const search = validSearch({
+      p1_base: 'https://attacker.example.com/api',
+      sungrow_base: 'https://attacker2.example.com/api',
+    });
+
+    let result;
+    expect(() => {
+      result = Config.parseConfig(search);
+    }).not.toThrow();
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => /p1_base/i.test(e))).toBe(true);
+    expect(Array.isArray(result.errors)).toBe(true);
+    expect(result.config).toBeUndefined();
+  });
+
+  test('getConfig() never exposes a rejected cross-origin base URL as the current config', () => {
+    let FreshConfig;
+    jest.isolateModules(() => {
+      FreshConfig = require('../src/config.js');
+    });
+
+    const search = validSearch({
+      p1_base: 'https://attacker.example.com/api',
+      sungrow_base: 'https://attacker2.example.com/api',
+    });
+    FreshConfig.parseConfig(search);
+
+    expect(FreshConfig.getConfig()).toBeNull();
   });
 });

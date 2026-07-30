@@ -5,6 +5,11 @@
  * STORY-016: Status Bar Component
  *
  * CHANGELOG:
+ * - 2026-07-30: RW-M05 hardening rider — delete the entire "handleMessage
+ *   (STORY-014)" describe (postMessage token bridge deleted outright, AC1);
+ *   remove Config.updateTokens from the test double; add AC1 (listener/
+ *   function deletion) and AC4 (graceful degradation on a rejected base URL)
+ *   coverage (RW-M05)
  * - 2026-02-15: Add tests for getStatusIndicator and formatLastUpdate (STORY-016)
  * - 2026-02-15: Initial test suite for handleMessage and dispatchToFlutter (STORY-014)
  */
@@ -22,7 +27,8 @@ beforeAll(() => {
   global.Config = {
     parseConfig: jest.fn(() => ({ valid: false, errors: [] })),
     getConfig: jest.fn(() => null),
-    updateTokens: jest.fn(),
+    // No updateTokens (RW-M05 AC1): Config.updateTokens is deleted outright,
+    // and app.js no longer references it.
   };
   global.PowerFlow = {
     init: jest.fn(),
@@ -57,210 +63,37 @@ afterAll(() => {
   delete global.EnergyBalance;
 });
 
-// ---------------------------------------------------------------------------
-// Helper: create a mock MessageEvent-like object
-// ---------------------------------------------------------------------------
-function makeMessageEvent(overrides = {}) {
-  return Object.assign(
-    {
-      origin: window.location.origin,
-      data: { type: 'token_refresh', p1_token: 'tok-p1', sungrow_token: 'tok-sg' },
-    },
-    overrides
-  );
-}
-
+// REMOVED (RW-M05 AC1): the "handleMessage (STORY-014)" describe (and its
+// makeMessageEvent helper) asserted origin validation, schema validation,
+// and token delivery via App.handleMessage()/Config.updateTokens() for the
+// postMessage WebView bridge. The bridge served a Flutter host that does not
+// exist in the production path (ADR-009 amendment) — handleMessage and the
+// window 'message' listener are deleted outright, not disabled. Testing
+// deleted functionality is meaningless; replaced entirely by
+// "AC1: postMessage token bridge deleted" below, which asserts the function
+// and the listener registration are both gone.
+//
 // ===========================================================================
-// handleMessage (STORY-014)
+// RW-M05 AC1: postMessage token bridge deleted — the listener and all
+// token-from-message handling are gone, not disabled or commented out.
 // ===========================================================================
-describe('handleMessage (STORY-014)', () => {
-  beforeEach(() => {
-    global.Config.updateTokens.mockClear();
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+describe('AC1: postMessage token bridge deleted', () => {
+  test('App.handleMessage is not part of the public API (function deleted)', () => {
+    expect(App.handleMessage).toBeUndefined();
   });
 
-  afterEach(() => {
-    console.warn.mockRestore();
-  });
+  test('App.init() never registers a "message" event listener on window', () => {
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    addEventListenerSpy.mockClear();
 
-  // -----------------------------------------------------------------------
-  // Origin validation
-  // -----------------------------------------------------------------------
-  test('ignores messages from different origin', () => {
-    const event = makeMessageEvent({ origin: 'https://evil.example.com' });
-    App.handleMessage(event);
+    App.init();
 
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  test('logs warning when origin does not match', () => {
-    const event = makeMessageEvent({ origin: 'https://evil.example.com' });
-    App.handleMessage(event);
-
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Rejected postMessage'),
-      'https://evil.example.com'
+    const messageListenerCalls = addEventListenerSpy.mock.calls.filter(
+      (call) => call[0] === 'message'
     );
-  });
+    expect(messageListenerCalls).toHaveLength(0);
 
-  test('accepts messages with null origin when Flutter bridge is present', () => {
-    window.flutter_inappwebview = { callHandler: jest.fn() };
-    const event = makeMessageEvent({
-      origin: 'null',
-      data: { type: 'token_refresh', p1_token: 'wv-p1' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).toHaveBeenCalledWith({ p1_token: 'wv-p1' });
-    delete window.flutter_inappwebview;
-  });
-
-  test('rejects messages with null origin when Flutter bridge is absent', () => {
-    delete window.flutter_inappwebview;
-    const event = makeMessageEvent({
-      origin: 'null',
-      data: { type: 'token_refresh', p1_token: 'wv-p1' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Schema validation
-  // -----------------------------------------------------------------------
-  test('ignores messages without data object', () => {
-    const event = makeMessageEvent({ data: null });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  test('ignores messages where data is a string', () => {
-    const event = makeMessageEvent({ data: 'not-an-object' });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  test('ignores messages without type field', () => {
-    const event = makeMessageEvent({ data: { p1_token: 'tok' } });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  test('ignores messages with non-string type', () => {
-    const event = makeMessageEvent({ data: { type: 123, p1_token: 'tok' } });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Token delivery: token_refresh
-  // -----------------------------------------------------------------------
-  test('token_refresh updates tokens via Config.updateTokens', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh', p1_token: 'new-p1', sungrow_token: 'new-sg' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).toHaveBeenCalledTimes(1);
-    expect(global.Config.updateTokens).toHaveBeenCalledWith({
-      p1_token: 'new-p1',
-      sungrow_token: 'new-sg',
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // Token delivery: bootstrap
-  // -----------------------------------------------------------------------
-  test('bootstrap updates tokens via Config.updateTokens', () => {
-    const event = makeMessageEvent({
-      data: { type: 'bootstrap', p1_token: 'init-p1', sungrow_token: 'init-sg' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).toHaveBeenCalledTimes(1);
-    expect(global.Config.updateTokens).toHaveBeenCalledWith({
-      p1_token: 'init-p1',
-      sungrow_token: 'init-sg',
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // Token validation: empty / non-string
-  // -----------------------------------------------------------------------
-  test('ignores empty string tokens', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh', p1_token: '', sungrow_token: '' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  test('ignores whitespace-only tokens', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh', p1_token: '   ', sungrow_token: '  ' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  test('ignores non-string tokens', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh', p1_token: 12345, sungrow_token: true },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Partial tokens
-  // -----------------------------------------------------------------------
-  test('handles message with only p1_token', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh', p1_token: 'only-p1' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).toHaveBeenCalledTimes(1);
-    expect(global.Config.updateTokens).toHaveBeenCalledWith({ p1_token: 'only-p1' });
-  });
-
-  test('handles message with only sungrow_token', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh', sungrow_token: 'only-sg' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).toHaveBeenCalledTimes(1);
-    expect(global.Config.updateTokens).toHaveBeenCalledWith({ sungrow_token: 'only-sg' });
-  });
-
-  test('does not call updateTokens when no valid tokens present', () => {
-    const event = makeMessageEvent({
-      data: { type: 'token_refresh' },
-    });
-    App.handleMessage(event);
-
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
-  });
-
-  // -----------------------------------------------------------------------
-  // Unknown message type — no error, but no updateTokens
-  // -----------------------------------------------------------------------
-  test('ignores unknown message types without error', () => {
-    const event = makeMessageEvent({
-      data: { type: 'unknown_type', p1_token: 'tok' },
-    });
-
-    expect(() => App.handleMessage(event)).not.toThrow();
-    expect(global.Config.updateTokens).not.toHaveBeenCalled();
+    addEventListenerSpy.mockRestore();
   });
 });
 
@@ -518,5 +351,50 @@ describe('pollRealtimeData updates status bar on failure', () => {
 
     const label = document.querySelector('.status-bar__label');
     expect(label.textContent).toContain('Delayed');
+  });
+});
+
+// ===========================================================================
+// RW-M05 AC4: a rejected base URL degrades gracefully — a defined error
+// state, never a blank screen, and never a silent fetch to the rejected
+// host. App.init() already returns early on `!result.valid` (HC-003); these
+// tests lock that path in for the specific "same-origin rejection" reason
+// introduced by AC3, so a future edit to init()'s bridge-removal cannot
+// silently break it.
+// ===========================================================================
+describe('AC4: App degrades gracefully when Config rejects a base URL', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div class="dashboard"></div>';
+    global.ApiClient.fetchP1Realtime.mockClear();
+    global.ApiClient.fetchSungrowRealtime.mockClear();
+    global.ApiClient.fetchP1Capacity.mockClear();
+    global.ApiClient.fetchSungrowSeries.mockClear();
+    global.Config.parseConfig.mockReturnValue({
+      valid: false,
+      errors: ['p1_base must be same-origin with the dashboard host'],
+    });
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    global.Config.parseConfig.mockReturnValue({ valid: false, errors: [] });
+  });
+
+  test('renders a defined config-error panel instead of a blank screen', () => {
+    App.init();
+
+    const panel = document.querySelector('.config-error');
+    expect(panel).not.toBeNull();
+    expect(panel.getAttribute('role')).toBe('alert');
+    expect(panel.textContent).toContain('same-origin');
+  });
+
+  test('never calls any ApiClient fetch function when the base URL is rejected', () => {
+    App.init();
+
+    expect(global.ApiClient.fetchP1Realtime).not.toHaveBeenCalled();
+    expect(global.ApiClient.fetchSungrowRealtime).not.toHaveBeenCalled();
+    expect(global.ApiClient.fetchP1Capacity).not.toHaveBeenCalled();
+    expect(global.ApiClient.fetchSungrowSeries).not.toHaveBeenCalled();
   });
 });

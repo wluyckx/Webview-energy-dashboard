@@ -1,13 +1,18 @@
 /**
  * API Client module for Energy Dashboard.
  *
- * Fetches data from P1 and Sungrow APIs with Bearer token authentication,
- * 30-second fetch timeout via AbortController, and last-known-value caching
- * on failure (network error, timeout, non-200 status).
+ * Fetches data from P1 and Sungrow APIs using the same-origin session cookie
+ * for authentication (Caddy injects the backend Bearer tokens server-side —
+ * the client never holds a credential, HC-002), with a 30-second fetch timeout
+ * via AbortController and last-known-value caching on failure (network error,
+ * timeout, non-200 status).
  *
  * STORY-003: API Client with Authentication
  *
  * CHANGELOG:
+ * - 2026-07-30: Hardening rider — delete the Bearer-header branch of
+ *   authenticatedFetch and its token parameter; cookie auth is the only path
+ *   (RW-M05)
  * - 2026-03-01: Support proxy mode — cookie-based auth when no Bearer token provided
  * - 2026-02-15: Add staleness tracking and offline detection (STORY-013)
  * - 2026-02-15: Add mock data path for all 7 functions (STORY-004)
@@ -158,22 +163,18 @@ const ApiClient = (() => {
   }
 
   /**
-   * Perform an authenticated fetch: adds Authorization: Bearer header when a
-   * token is provided, otherwise uses credentials: 'include' to send cookies
-   * (proxy mode — Caddy injects backend tokens server-side).
+   * Perform an authenticated fetch: sends the same-origin session cookie via
+   * credentials: 'include'. There is no credential branch — the client holds
+   * no token in any form, and Caddy injects the backend Bearer token
+   * server-side (HC-002). No request from this module may ever carry an
+   * Authorization header.
    *
-   * @param {string} url - The full URL to fetch.
-   * @param {string} [token] - Optional Bearer token. If empty/undefined, cookie auth is used.
+   * @param {string} url - The full URL to fetch (same-origin, per Config).
    * @returns {Promise<Object>} Parsed JSON response data.
    * @throws {Error} On network error, timeout, or non-200 status.
    */
-  function authenticatedFetch(url, token) {
-    var options = {};
-    if (token) {
-      options.headers = { Authorization: 'Bearer ' + token };
-    } else {
-      options.credentials = 'include';
-    }
+  function authenticatedFetch(url) {
+    var options = { credentials: 'include' };
     return fetchWithTimeout(url, options).then(function (response) {
       if (!response.ok) {
         throw new Error('HTTP ' + response.status);
@@ -215,7 +216,7 @@ const ApiClient = (() => {
     }
     var url = config.p1_base + '/v1/realtime?device_id=' + config.p1_device_id;
 
-    return authenticatedFetch(url, config.p1_token).then(
+    return authenticatedFetch(url).then(
       function (data) {
         cache.p1Realtime = data;
         recordSuccess('p1');
@@ -241,7 +242,7 @@ const ApiClient = (() => {
     }
     var url = config.p1_base + '/v1/series?device_id=' + config.p1_device_id + '&frame=' + frame;
 
-    return authenticatedFetch(url, config.p1_token).then(
+    return authenticatedFetch(url).then(
       function (data) {
         cache.p1Series[frame] = data;
         recordSuccess('p1');
@@ -267,7 +268,7 @@ const ApiClient = (() => {
     }
     var url = config.p1_base + '/v1/capacity/month/' + month + '?device_id=' + config.p1_device_id;
 
-    return authenticatedFetch(url, config.p1_token).then(
+    return authenticatedFetch(url).then(
       function (data) {
         cache.p1Capacity[month] = data;
         recordSuccess('p1');
@@ -296,7 +297,7 @@ const ApiClient = (() => {
     }
     var url = config.sungrow_base + '/v1/realtime?device_id=' + config.sungrow_device_id;
 
-    return authenticatedFetch(url, config.sungrow_token).then(
+    return authenticatedFetch(url).then(
       function (data) {
         cache.sungrowRealtime = data;
         recordSuccess('sungrow');
@@ -323,7 +324,7 @@ const ApiClient = (() => {
     var url =
       config.sungrow_base + '/v1/series?device_id=' + config.sungrow_device_id + '&frame=' + frame;
 
-    return authenticatedFetch(url, config.sungrow_token).then(
+    return authenticatedFetch(url).then(
       function (data) {
         cache.sungrowSeries[frame] = data;
         recordSuccess('sungrow');

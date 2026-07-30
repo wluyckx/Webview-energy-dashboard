@@ -19,9 +19,10 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <created>2026-07-30</created>
   <last_updated>2026-07-30</last_updated>
   <total_stories>29</total_stories>
-  <done>2</done>
-  <progress>7%</progress>
+  <done>3</done>
+  <progress>10%</progress>
   <changelog>
+    <entry date="2026-07-30">RW-M05 done — bridge and URL-token fallback deleted, base-URL validation now parsed same-origin. R3 and R6 closed by removal. Verifier PASS across 24 attack classes; two mutation tests killed, the second by exactly the one test written for the prefix-bypass class.</entry>
     <entry date="2026-07-30">RW-C02 done — 19 files staged locally, R12 closed. Staging surfaced 12 findings in the reference (lovable/MANIFEST.md F1–F12); the consequential ones are now ACs on RW-E16/E17/E18, and F1 is recorded as new risk R13.</entry>
     <entry date="2026-07-30">RW-M01 done — all four maintenance-lane gates green on main for the first time (lint 0/0, format clean, 265 tests, 130.7 KB build).</entry>
     <entry date="2026-07-30">Created from Architecture.md extraction plan E1–E7 + ADR-012 maintenance lane. Charting settled as Recharts (ADR-007 amendment 2), so chart stories are unblocked rather than pending a decision.</entry>
@@ -297,7 +298,7 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <notes>Reference: ADR-012 maintenance item 3, defect D3, risk R1. Removed only when RW-C01 closes.</notes>
 </story>
 
-<story id="RW-M05" status="open" complexity="M" tdd="mandatory" lane="M" model_lane="Opus">
+<story id="RW-M05" status="done" complexity="M" tdd="mandatory" lane="M" model_lane="Opus" log="docs/stories/RW-M05.md">
   <title>Hardening rider — delete the dead bridge and require same-origin</title>
   <dependencies>RW-M01</dependencies>
   <description>
@@ -321,10 +322,23 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   </acceptance_criteria>
   <allowed_scope>
     <file>src/config.js</file>
-    <file>src/api-client.js (only where it consumes the validated base URL)</file>
+    <file>src/api-client.js (the Bearer branch of authenticatedFetch and its call sites)</file>
+    <file>src/app.js (the postMessage listener at :342 and its handleMessage token extraction at :305-312 — SCOPE AMENDED 2026-07-30, see note)</file>
     <file>tests/config.test.js (Spec Author only)</file>
     <file>tests/api-client.test.js (Spec Author only)</file>
+    <file>tests/app.test.js (Spec Author only)</file>
+    <file>jest.config.js (only if a test origin must be configured for the same-origin assertions)</file>
   </allowed_scope>
+  <scope_note date="2026-07-30">
+    PM defect in the original draft, corrected before the Spec Author was
+    spawned: the story assumed the bridge lived entirely in config.js. It does
+    not. `config.js` exposes `updateTokens`, but the actual entry point is
+    `window.addEventListener('message', handleMessage)` at src/app.js:342 with
+    the token extraction at src/app.js:305-312. Deleting only the config.js half
+    would leave a live listener calling a removed function. Same class of defect
+    as RW-M01's five-versus-eight format files — the story was written from the
+    architecture rather than from the code.
+  </scope_note>
   <out_of_scope>The Caddy configuration, docker-compose, the proxy itself, anything in the deployment path. Any change to how Caddy injects tokens server-side.</out_of_scope>
   <notes>Reference: ADR-012 maintenance item 4, ADR-009 amendment, HC-002 rewrite, risks R3 and R6. SECURITY gate is the primary gate on this story.</notes>
 </story>
@@ -870,6 +884,8 @@ this file. `SKILL.md` binds every story. The Governor (PM hat) owns this file.
   <idea>Daily battery charge/discharge kWh breakdown</idea>
   <idea>Year-over-year historical comparison</idea>
   <idea>CI for this repo — explicitly NOT worth building (ADR-011: archive-bound). Hestia's gates are the ones that outlive the transition</idea>
+  <idea>Normalise the validated base URL in `src/config.js`: `validateUrl` parses and resolves the candidate, but the config stores the raw unresolved string that `api-client.js` then concatenates. Inert today (every accepted value resolves same-origin, and no padding trick smuggled a foreign host through 24 attack classes), but the validated string and the fetched string are not provably identical — store `parsed.href`, or reject non-identity relative forms. Found by the RW-M05 Verifier and deliberately left out of that story's scope</idea>
+  <idea>`coverage/` is absent from .gitignore (it appears only in .prettierignore), so `npm run test:coverage` followed by `git add -A` would commit coverage output to a PUBLIC remote. One line to fix; found by the RW-M05 Builder and deliberately left out of that story's scope</idea>
 </parking_lot>
 
 <!-- ============================================================ -->
