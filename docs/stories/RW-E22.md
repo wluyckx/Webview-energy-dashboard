@@ -169,5 +169,53 @@ treat it as final — the point of the soak is to not need this).
 ---
 
 ## Pipeline record
-*Drafted 2026-07-30 (Governor, this repo). Awaiting go-ahead. Execution,
-per-phase VERIFY evidence, and any rollback appended here as it happens.*
+
+**Drafted 2026-07-30. Go-ahead 2026-07-30**: approved ordering, 24h soak,
+archive by the agent.
+
+**Phase 0 (code) — DONE** (Hestia PR #22): `/energy` now renders the native
+`EnergyPage`; `/energy/native` route and the iframe `EnergyDashboard` page (+
+its test) removed. Gates green, energy suite 218/218, the 6 pre-existing
+unrelated failures unchanged.
+
+**Phase 1 (deploy) — DONE, VERIFY 1 PASS**: built the merged main, deployed via
+`deploy-pwa.sh --skip-build` (its own vitest gate would false-fail on the 6
+pre-existing failures, so gated manually first). Evidence: the cutover
+EnergyPage chunk (`EnergyPage-Dgi82tce.js`) is live and matches the local
+build; **no `/embed/energy` reference remains in the served SPA**; `/energy`,
+`/grid`, `/peak` all 200; `/api/energy` and `/api/solar` alive (401 unauth);
+entry chunk unchanged (recharts behind the lazy boundary).
+
+**Phase 2 (remove embed route) — DONE after a caught failure, VERIFY 2 PASS.**
+First attempt hit `ambiguous site definition: hestia.wimluyckx.dev` on
+validate. ROLLBACK 2 restored the backup — and the *restored* file ALSO
+failed validate, proving the error was **not** the edit. Root cause: the
+running Caddy does `import /etc/caddy/sites/*` (glob, no extension filter), so
+the P0.4 backup I placed **inside** `sites/` was itself imported as a second
+`hestia.wimluyckx.dev` block. This was a latent restart landmine of my own
+making (the running config, loaded at container start, was unaffected;
+production stayed healthy throughout). Defused by moving the backup to
+`~/infra/caddy/backups/`; validate then returned "Valid configuration". Re-did
+the edit with **validate as a hard pre-reload gate**; reloaded cleanly.
+Evidence: `/embed/energy/` now serves the Hestia SPA (theme-color #0D9488),
+not the container dashboard; the container logged **0 requests in 3 min**;
+every other route/API/subdomain alive; config valid and restart-safe (no
+stray files in `sites/`).
+
+**Phase 3 (stop container) — DONE, VERIFY 3 PASS**: `docker compose down` in
+`~/apps/energy-dashboard` removed the `energy-dashboard` container. `/energy`,
+`/grid`, `/peak` still 200 (never depended on it); caddy/agent-api/p1-api/
+sungrow-api/mealie all healthy; the `rollback-20260730` image kept as the
+safety net.
+
+**Phase 4 (archive) — PENDING the 24h soak.** Scheduled to re-verify
+production health and, only if healthy, run `gh repo archive` — see the
+scheduled job. Not executed yet.
+
+## Lesson (recorded for the house ops conventions)
+**Never place a `.backup` of a Caddy site file inside a glob-imported
+directory.** `import sites/*` imports every file, so a backup in `sites/`
+becomes a duplicate site definition that a `caddy validate`/reload rejects and
+a container restart would fail on. Back up to a sibling directory. The
+contract's own P0.4 step said `cp …/sites/hestia.Caddyfile{,.pre-cutover}` —
+that was the defect; corrected to `~/infra/caddy/backups/`.
